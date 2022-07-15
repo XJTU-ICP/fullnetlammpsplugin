@@ -22,13 +22,13 @@ if(DEFINED LAMMPS_HEADER_DIR OR DEFINED LAMMPS_VERSION)
   else()
     # Use LAMMPS serial mpi.h header
     target_include_directories(lammpsPluginTest
-                               INTERFACE "${LAMMPS_HEADER_DIR}/STUBS")
+                               INTERFACE "${LAMMPS_SOURCE_DIR}/src/STUBS")
   endif()
 
   # get_lammps_version
   # https://github.com/lammps/lammps/blob/c2a12f97c5f665852fb38fdd4922f7dd2e77a0a1/cmake/Modules/LAMMPSUtils.cmake#L27-L46
   include(${LAMMPS_SOURCE_ROOT}/cmake/Modules/LAMMPSUtils.cmake)
-  get_lammps_version(${LAMMPS_HEADER_DIR}/version.h LAMMPS_VERSION_NUMBER)
+  get_lammps_version(${LAMMPS_SOURCE_DIR}/src/version.h LAMMPS_VERSION_NUMBER)
   set(LAMMPS_VERSION_NUMBER
       ${LAMMPS_VERSION_NUMBER}
       PARENT_SCOPE)
