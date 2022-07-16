@@ -2,7 +2,7 @@
 
 namespace torchmolnet
 {
-    TorchMolNet::TorchMolNet(const std::string &model_path, const std::string &device)
+    TorchMolNet::TorchMolNet(const std::string &model_path, const std::string &device) : m_device_(torch::Device(torch::kCPU))
     {
         // Load the model from a file.
         m_model_path_ = model_path;
@@ -14,12 +14,12 @@ namespace torchmolnet
         {
             throw std::runtime_error(e.what());
         }
-        if(device=="cuda")
+        if (device == "cuda")
         {
             m_device_ = torch::Device(torch::kCUDA);
             m_model_.to(m_device_);
         }
-        else if(device=="cpu")
+        else if (device == "cpu")
         {
             m_device_ = torch::Device(torch::kCPU);
             m_model_.to(m_device_);
