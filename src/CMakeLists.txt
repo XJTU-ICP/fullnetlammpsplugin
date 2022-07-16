@@ -1,2 +1,2 @@
-add_subdirectory(plugin)
 add_subdirectory(api_cc)
+add_subdirectory(lmp)

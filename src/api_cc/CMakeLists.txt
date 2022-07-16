@@ -16,7 +16,7 @@ set (libname "${LIB_TORCHMOLNET_CC}${variant_name}")
 add_library(${libname} SHARED ${LIB_SRC})
 
 # link: libtorchmolnet libtorchmolnet_op
-target_link_libraries (${libname} PUBLIC ${LIB_DEEPMD})
+target_link_libraries (${libname} PUBLIC ${LIB_DEEPMD} ${TORCH_LIBRARIES})
 target_include_directories(${libname} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_BINARY_DIR})
 
 set_target_properties(

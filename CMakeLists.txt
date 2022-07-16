@@ -61,6 +61,11 @@ else()
   endif()
 endif()
 
+get_cmake_property(_variableNames VARIABLES)
+foreach (_variableName ${_variableNames})
+    message(STATUS "${_variableName}=${${_variableName}}")
+endforeach()
+
 message(STATUS "Torch version: ${Torch_VERSION}")
 message(STATUS "Git summary: ${GIT_SUMM}")
 
