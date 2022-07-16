@@ -16,7 +16,7 @@ namespace torchmolnet
          * @param[in] model_path Path to the model file.
          * @param[in] device The device to use.
          */
-        TorchMolNet(const std::string &model_path, const std::string &device);
+        TorchMolNet(const std::string &model_path, const std::string &device="cuda");
 
         /**
          * @brief Destroy the Torch Mol Net object
