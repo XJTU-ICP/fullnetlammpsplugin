@@ -17,16 +17,17 @@ namespace torchmolnet
         if(device=="cuda")
         {
             m_device_ = torch::Device(torch::kCUDA);
+            m_model_.to(m_device_);
         }
         else if(device=="cpu")
         {
             m_device_ = torch::Device(torch::kCPU);
+            m_model_.to(m_device_);
         }
         else
         {
             throw std::runtime_error("Unknown device: " + device);
         }
-        m_model_.to(m_device_);
     }
 
     TorchMolNet::~TorchMolNet()
