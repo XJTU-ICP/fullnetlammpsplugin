@@ -14,7 +14,7 @@ namespace torchmolnet
         {
             throw std::runtime_error(e.what());
         }
-        m_device_ = torch::Device(device);
+        m_device_ = torch::Device(&device);
         m_model_.to(m_device_);
     }
 
