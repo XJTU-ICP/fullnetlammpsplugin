@@ -39,6 +39,7 @@ namespace torchmolnet
         void print_summary() const;
 
     private:
+        std::string m_model_path;
         torch::jit::Module m_module_;
         torch::Device m_device_;
     };
