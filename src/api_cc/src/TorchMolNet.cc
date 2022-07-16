@@ -8,8 +8,8 @@ namespace torchmolnet
         m_model_path_ = model_path;
         try
         {
-            m_device_ = torch::Device(device);
-            m_model_ = torch::jit::load(model_path,m_device_);
+            m_device_ = torch::device(device);
+            m_model_ = torch::jit::load(model_path, m_device_);
         }
         catch (const c10::Error &e)
         {
