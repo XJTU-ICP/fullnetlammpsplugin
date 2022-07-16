@@ -3,6 +3,7 @@
 */
 #include "lammpsplugin.h"
 #include "version.h"
+#include "pair_torchmolnet.h"
 
 using namespace LAMMPS_NS;
 
