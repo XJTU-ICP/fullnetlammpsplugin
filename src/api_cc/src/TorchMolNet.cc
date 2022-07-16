@@ -16,11 +16,11 @@ namespace torchmolnet
         }
         if(device=="cuda")
         {
-            m_device_ = torch::Device(torch::kCUDA);
+            m_device_ = torch::device(torch::kCUDA);
         }
         else if(device=="cpu")
         {
-            m_device_ = torch::Device(torch::kCPU);
+            m_device_ = torch::device(torch::kCPU);
         }
         else
         {
