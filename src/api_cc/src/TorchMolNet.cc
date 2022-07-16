@@ -14,29 +14,27 @@ namespace torchmolnet
             throw std::runtime_error(e.what());
         }
         m_device_ = torch::Device(device);
-        m_module_->to(m_device_);
+        m_module_.to(m_device_);
     }
 
     TorchMolNet::~TorchMolNet()
     {
     }
 
-    std::vector<float> TorchMolNet::predict(const std::vector<float> &features)
+    std::vector<float> TorchMolNet::predict(const std::vector<torch::Tensor> &inputs, std::vector<torch::Tensor> *outputs)
     {
         // Create a tensor from the input vector.
-        torch::Tensor input = torch::from_blob(features.data(), {1, features.size()});
-        input = input.to(m_device_);
-
-        // Run the model.
-        torch::Tensor output = m_model->forward(input).toTensor();
-
-        // Convert the output to a vector.
-        std::vector<float> output_vector(output.data_ptr<float>(), output.data_ptr<float>() + output.numel());
+        std::cout << "inputs size: " << inputs.size() << std::endl;
+        std::cout << "inputs is:" << std::endl;
+        for (int i = 0; i < inputs.size(); i++)
+        {
+            std::cout << inputs[i] << std::endl;
+        }
 
         return output_vector;
     }
 
-    void TorchMolNet::print_summary()
+    void TorchMolNet::print_summary() const
     {
         std::cout << "TorchMolNet summary:" << std::endl;
         std::cout << "  Model path:       " << m_model_path << std::endl;
