@@ -20,7 +20,7 @@
 #include "fix_ttm_mod.h"
 #endif
 
-#include "pair_deepmd.h"
+#include "pair_torchmolnet.h"
 
 using namespace LAMMPS_NS;
 using namespace std;
