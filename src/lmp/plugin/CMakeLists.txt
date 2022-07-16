@@ -33,8 +33,8 @@ if(DEFINED LAMMPS_HEADER_DIR OR DEFINED LAMMPS_VERSION)
       ${LAMMPS_VERSION_NUMBER}
       PARENT_SCOPE)
 
-  configure_file("../pair_deepmd.h.in"
-                 "${CMAKE_CURRENT_BINARY_DIR}/pair_deepmd.h" @ONLY)
+  configure_file("../pair_torchmolnet.h.in"
+                 "${CMAKE_CURRENT_BINARY_DIR}/pair_torchmolnet.h" @ONLY)
 
   file(GLOB LMP_SRC torchmol_lmpplugin.cpp ../*.cpp)
 
