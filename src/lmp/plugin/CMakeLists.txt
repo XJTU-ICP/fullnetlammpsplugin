@@ -27,7 +27,7 @@ if(DEFINED LAMMPS_HEADER_DIR OR DEFINED LAMMPS_VERSION)
 
   # get_lammps_version
   # https://github.com/lammps/lammps/blob/c2a12f97c5f665852fb38fdd4922f7dd2e77a0a1/cmake/Modules/LAMMPSUtils.cmake#L27-L46
-  include(${LAMMPS_SOURCE_ROOT}/cmake/Modules/LAMMPSUtils.cmake)
+  include(${LAMMPS_SOURCE_DIR}/cmake/Modules/LAMMPSUtils.cmake)
   get_lammps_version(${LAMMPS_SOURCE_DIR}/src/version.h LAMMPS_VERSION_NUMBER)
   set(LAMMPS_VERSION_NUMBER
       ${LAMMPS_VERSION_NUMBER}
@@ -46,7 +46,7 @@ if(DEFINED LAMMPS_HEADER_DIR OR DEFINED LAMMPS_VERSION)
     target_include_directories(
       ${libname}
       PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/..
-              ${LAMMPS_SOURCE_ROOT}/src)
+              ${LAMMPS_SOURCE_DIR}/src)
 
     target_compile_definitions(
       ${libname}
