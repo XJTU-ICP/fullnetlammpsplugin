@@ -14,16 +14,17 @@ namespace torchmolnet
         {
             throw std::runtime_error(e.what());
         }
-        switch(device)
+        if(device=="cuda")
         {
-            case "cpu":
-                m_device_ = torch::Device(torch::kCPU);
-                break;
-            case "cuda":
-                m_device_ = torch::Device(torch::kCUDA);
-                break;
-            default:
-                throw std::runtime_error("Unknown device: " + device);
+            m_device_ = torch::Device(torch::kCUDA);
+        }
+        else if(device=="cpu")
+        {
+            m_device_ = torch::Device(torch::kCPU);
+        }
+        else
+        {
+            throw std::runtime_error("Unknown device: " + device);
         }
         m_model_.to(m_device_);
     }
