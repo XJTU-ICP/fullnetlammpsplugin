@@ -16,7 +16,7 @@ namespace torchmolnet
          * @param[in] model_path Path to the model file.
          * @param[in] device The device to use.
          */
-        TorchMolNet(const std::string &model_path, const std::string &device);
+        TorchMolNet(const std::string model_path, const std::string device);
 
         /**
          * @brief Destroy the Torch Mol Net object
@@ -30,7 +30,7 @@ namespace torchmolnet
          * @param inputs The input molecule.
          * @param outputs The output molecule.
          */
-        void predict(const std::vector<torch::Tensor> &inputs, std::vector<torch::Tensor> *outputs);
+        void predict(const std::vector<torch::Tensor> &inputs, std::vector<torch::Tensor> &outputs);
 
         /**
          * @brief Pring the model summary.

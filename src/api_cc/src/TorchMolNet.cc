@@ -2,7 +2,7 @@
 
 namespace torchmolnet
 {
-    TorchMolNet::TorchMolNet(const std::string &model_path, const std::string &device)
+    TorchMolNet::TorchMolNet(const std::string model_path, const std::string device)
     {
         // Load the model from a file.
         m_model_path = model_path;
@@ -22,7 +22,7 @@ namespace torchmolnet
     {
     }
 
-    void TorchMolNet::predict(const std::vector<torch::Tensor> &inputs, std::vector<torch::Tensor> *outputs)
+    void TorchMolNet::predict(const std::vector<torch::Tensor> &inputs, std::vector<torch::Tensor> &outputs)
     {
         // Create a tensor from the input vector.
         std::cout << "inputs size: " << inputs.size() << std::endl;
