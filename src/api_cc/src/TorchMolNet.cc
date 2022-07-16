@@ -8,12 +8,22 @@ namespace torchmolnet
         m_model_path_ = model_path;
         try
         {
-            m_device_ = torch::device(device);
-            m_model_ = torch::jit::load(model_path, m_device_);
+            m_model_ = torch::jit::load(model_path);
         }
         catch (const c10::Error &e)
         {
             throw std::runtime_error(e.what());
+        }
+        switch(device)
+        {
+            case "cpu":
+                m_device_ = torch::Device(torch::kCPU);
+                break;
+            case "cuda":
+                m_device_ = torch::Device(torch::kCUDA);
+                break;
+            default:
+                throw std::runtime_error("Unknown device: " + device);
         }
         m_model_.to(m_device_);
     }
