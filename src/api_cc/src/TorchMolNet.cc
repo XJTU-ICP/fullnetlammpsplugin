@@ -38,8 +38,8 @@ namespace torchmolnet
     void TorchMolNet::print_summary() const
     {
         std::cout << "TorchMolNet summary:" << std::endl;
-        std::cout << "  Model path:       " << m_model_path << std::endl;
-        std::cout << "  Device:           " << m_device << std::endl;
+        std::cout << "  Model path:       " << m_model_path_ << std::endl;
+        std::cout << "  Device:           " << m_device_ << std::endl;
         std::cout << "Module build summary:     " << std::endl;
         std::cout << "  Installed to:     " << global_install_prefix << std::endl;
         std::cout << "  Git summary:      " << global_git_summ << std::endl;
