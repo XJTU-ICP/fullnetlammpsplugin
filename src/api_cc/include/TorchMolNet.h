@@ -16,7 +16,7 @@ namespace torchmolnet
          * @param[in] model_path Path to the model file.
          * @param[in] device The device to use.
          */
-        TorchMolNet(const std::string model_path, const std::string device);
+        TorchMolNet(const std::string &model_path, const std::string &device);
 
         /**
          * @brief Destroy the Torch Mol Net object
@@ -39,8 +39,8 @@ namespace torchmolnet
         void print_summary() const;
 
     private:
-        std::string m_model_path;
-        torch::jit::Module m_module_;
+        std::string m_model_path_;
+        torch::jit::Module m_model_;
         torch::Device m_device_;
     };
 

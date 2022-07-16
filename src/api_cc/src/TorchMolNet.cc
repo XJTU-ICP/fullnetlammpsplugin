@@ -2,20 +2,20 @@
 
 namespace torchmolnet
 {
-    TorchMolNet::TorchMolNet(const std::string model_path, const std::string device)
+    TorchMolNet::TorchMolNet(const std::string &model_path, const std::string &device)
     {
         // Load the model from a file.
-        m_model_path = model_path;
+        m_model_path_ = model_path;
         try
         {
-            m_module_ = torch::jit::load(model_path);
+            m_model_ = torch::jit::load(model_path);
         }
         catch (const c10::Error &e)
         {
             throw std::runtime_error(e.what());
         }
-        m_device_ = torch::Device(device);
-        m_module_.to(m_device_);
+        m_device_ = torch::Device(*device);
+        m_model_.to(m_device_);
     }
 
     TorchMolNet::~TorchMolNet()
