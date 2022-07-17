@@ -13,7 +13,7 @@
 #include "neighbor.h"
 #include "neigh_list.h"
 #include "neigh_request.h"
-#include "modify.h"f
+#include "modify.h"
 #include "fix.h"
 #include "citeme.h"
 #ifdef USE_TTM
@@ -272,7 +272,7 @@ PairTorchMolNet::print_summary(const string pre) const
 
     cout << "Summary of lammps deepmd module ..." << endl;
     cout << pre << ">>> Info of deepmd-kit:" << endl;
-    deep_pot.print_summary(pre);
+    pair_torchmolnet.print_summary(pre);
     cout << pre << ">>> Info of lammps module:" << endl;
     cout << pre << "use deepmd-kit at:  " << STR_DEEPMD_ROOT << endl;
     cout << pre << "source:             " << STR_GIT_SUMM << endl;
@@ -377,7 +377,7 @@ void PairTorchMolNet::compute(int eflag, int vflag)
       if ( ! (eflag_atom || cvflag_atom) ) {      
 #ifdef HIGH_PREC
   try {
-	deep_pot.compute (dener, dforce, dvirial, dcoord, dtype, dbox, nghost, lmp_list, ago, fparam, daparam);
+	torchmolnet.compute (dener, dforce, dvirial, dcoord, dtype, dbox, nghost, lmp_list, ago, fparam, daparam);
   } catch(deepmd::deepmd_exception& e) {
     error->all(FLERR, e.what());
   }
@@ -390,7 +390,7 @@ void PairTorchMolNet::compute(int eflag, int vflag)
 	vector<float> dvirial_(dvirial.size(), 0);
 	double dener_ = 0;
   try {
-	deep_pot.compute (dener_, dforce_, dvirial_, dcoord_, dtype, dbox_, nghost, lmp_list, ago, fparam, daparam);
+	torchmolnet.compute (dener_, dforce_, dvirial_, dcoord_, dtype, dbox_, nghost, lmp_list, ago, fparam, daparam);
   } catch(deepmd::deepmd_exception& e) {
     error->all(FLERR, e.what());
   }
@@ -405,7 +405,7 @@ void PairTorchMolNet::compute(int eflag, int vflag)
 	vector<double > dvatom (nall * 9, 0);
 #ifdef HIGH_PREC
   try {
-	deep_pot.compute (dener, dforce, dvirial, deatom, dvatom, dcoord, dtype, dbox, nghost, lmp_list, ago, fparam, daparam);
+	torchmolnet.compute (dener, dforce, dvirial, deatom, dvatom, dcoord, dtype, dbox, nghost, lmp_list, ago, fparam, daparam);
   } catch(deepmd::deepmd_exception& e) {
     error->all(FLERR, e.what());
   }
@@ -420,7 +420,7 @@ void PairTorchMolNet::compute(int eflag, int vflag)
 	vector<float> dvatom_(dforce.size(), 0);
 	double dener_ = 0;
   try {
-	deep_pot.compute (dener_, dforce_, dvirial_, deatom_, dvatom_, dcoord_, dtype, dbox_, nghost, lmp_list, ago, fparam, daparam);
+	torchmolnet.compute (dener_, dforce_, dvirial_, deatom_, dvatom_, dcoord_, dtype, dbox_, nghost, lmp_list, ago, fparam, daparam);
   } catch(deepmd::deepmd_exception& e) {
     error->all(FLERR, e.what());
   }
@@ -714,7 +714,7 @@ void PairTorchMolNet::compute(int eflag, int vflag)
     if (numb_models == 1) {
 #ifdef HIGH_PREC
       try {
-      deep_pot.compute (dener, dforce, dvirial, dcoord, dtype, dbox);
+      torchmolnet.compute (dener, dforce, dvirial, dcoord, dtype, dbox);
       } catch(deepmd::deepmd_exception& e) {
         error->all(FLERR, e.what());
       }
@@ -727,7 +727,7 @@ void PairTorchMolNet::compute(int eflag, int vflag)
       vector<float> dvirial_(dvirial.size(), 0);
       double dener_ = 0;
       try {
-      deep_pot.compute (dener_, dforce_, dvirial_, dcoord_, dtype, dbox_);
+      torchmolnet.compute (dener_, dforce_, dvirial_, dcoord_, dtype, dbox_);
       } catch(deepmd::deepmd_exception& e) {
         error->all(FLERR, e.what());
       }
@@ -827,18 +827,18 @@ void PairTorchMolNet::settings(int narg, char **arg)
   numb_models = models.size();
   if (numb_models == 1) {
     try {
-    deep_pot.init (arg[0], get_node_rank(), get_file_content(arg[0]));
+    torchmolnet.init (arg[0], get_node_rank(), get_file_content(arg[0]));
     } catch(deepmd::deepmd_exception& e) {
       error->all(FLERR, e.what());
     }
-    cutoff = deep_pot.cutoff ();
-    numb_types = deep_pot.numb_types();
-    dim_fparam = deep_pot.dim_fparam();
-    dim_aparam = deep_pot.dim_aparam();
+    cutoff = torchmolnet.cutoff ();
+    numb_types = torchmolnet.numb_types();
+    dim_fparam = torchmolnet.dim_fparam();
+    dim_aparam = torchmolnet.dim_aparam();
   }
   else {
     try {
-    deep_pot.init (arg[0], get_node_rank(), get_file_content(arg[0]));
+    torchmolnet.init (arg[0], get_node_rank(), get_file_content(arg[0]));
     deep_pot_model_devi.init(models, get_node_rank(), get_file_content(models));
     } catch(deepmd::deepmd_exception& e) {
       error->all(FLERR, e.what());
@@ -847,10 +847,10 @@ void PairTorchMolNet::settings(int narg, char **arg)
     numb_types = deep_pot_model_devi.numb_types();
     dim_fparam = deep_pot_model_devi.dim_fparam();
     dim_aparam = deep_pot_model_devi.dim_aparam();
-    assert(cutoff == deep_pot.cutoff());
-    assert(numb_types == deep_pot.numb_types());
-    assert(dim_fparam == deep_pot.dim_fparam());
-    assert(dim_aparam == deep_pot.dim_aparam());
+    assert(cutoff == torchmolnet.cutoff());
+    assert(numb_types == torchmolnet.numb_types());
+    assert(dim_fparam == torchmolnet.dim_fparam());
+    assert(dim_aparam == torchmolnet.dim_aparam());
   }
 
   out_freq = 100;
