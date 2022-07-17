@@ -13,7 +13,7 @@
 #include "neighbor.h"
 #include "neigh_list.h"
 #include "neigh_request.h"
-#include "modify.h"
+#include "modify.h"f
 #include "fix.h"
 #include "citeme.h"
 #ifdef USE_TTM
@@ -25,7 +25,7 @@
 using namespace LAMMPS_NS;
 using namespace std;
 
-static const char cite_user_deepmd_package[] =
+static const char cite_torch_mol_net_package[] =
 	"TorchMolNet package:\n\n"
     "@misc{Han_TorchMolNet,\n"
     "  author = {Han, Yanbo},\n"
@@ -51,7 +51,7 @@ static int stringCmp(const void *a, const void* b)
     return sum;
 }
 
-int PairDeepMD::get_node_rank() {
+int PairTorchMolNet::get_node_rank() {
     char host_name[MPI_MAX_PROCESSOR_NAME];
     memset(host_name, '\0', sizeof(char) * MPI_MAX_PROCESSOR_NAME);
     char (*host_names)[MPI_MAX_PROCESSOR_NAME];
@@ -98,7 +98,7 @@ int PairDeepMD::get_node_rank() {
     return looprank;
 }
 
-std::string PairDeepMD::get_file_content(const std::string & model) {
+std::string PairTorchMolNet::get_file_content(const std::string & model) {
   int myrank = 0, root = 0;
   MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
   int nchar = 0;
@@ -121,7 +121,7 @@ std::string PairDeepMD::get_file_content(const std::string & model) {
   return file_content;
 }
 
-std::vector<std::string> PairDeepMD::get_file_content(const std::vector<std::string> & models) {
+std::vector<std::string> PairTorchMolNet::get_file_content(const std::vector<std::string> & models) {
   std::vector<std::string> file_contents(models.size());
   for (unsigned ii = 0; ii < models.size(); ++ii) {
     file_contents[ii] = get_file_content(models[ii]);
@@ -170,7 +170,7 @@ make_uniform_aparam(
 }
 
 #ifdef USE_TTM
-void PairDeepMD::make_ttm_aparam(
+void PairTorchMolNet::make_ttm_aparam(
 #ifdef HIGH_PREC
     vector<double > & daparam
 #else
@@ -222,7 +222,7 @@ void PairDeepMD::make_ttm_aparam(
 }
 #endif
 
-PairDeepMD::PairDeepMD(LAMMPS *lmp) 
+PairTorchMolNet::PairTorchMolNet(LAMMPS *lmp) 
     : Pair(lmp)
       
 {
@@ -261,7 +261,7 @@ PairDeepMD::PairDeepMD(LAMMPS *lmp)
 }
 
 void
-PairDeepMD::print_summary(const string pre) const
+PairTorchMolNet::print_summary(const string pre) const
 {
   if (comm->me == 0){
     // capture cout to a string, then call LAMMPS's utils::logmesg
@@ -289,7 +289,7 @@ PairDeepMD::print_summary(const string pre) const
 }
 
 
-PairDeepMD::~PairDeepMD()
+PairTorchMolNet::~PairTorchMolNet()
 {
   if (allocated) {
     memory->destroy(setflag);
@@ -298,7 +298,7 @@ PairDeepMD::~PairDeepMD()
   }
 }
 
-void PairDeepMD::compute(int eflag, int vflag)
+void PairTorchMolNet::compute(int eflag, int vflag)
 {
   if (numb_models == 0) return;
   if (eflag || vflag) ev_setup(eflag,vflag);
@@ -761,7 +761,7 @@ void PairDeepMD::compute(int eflag, int vflag)
 }
 
 
-void PairDeepMD::allocate()
+void PairTorchMolNet::allocate()
 {
   allocated = 1;
   int n = atom->ntypes;
@@ -809,7 +809,7 @@ is_key (const string& input)
 }
 
 
-void PairDeepMD::settings(int narg, char **arg)
+void PairTorchMolNet::settings(int narg, char **arg)
 {
   if (narg <= 0) error->all(FLERR,"Illegal pair_style command");
 
@@ -991,12 +991,12 @@ void PairDeepMD::settings(int narg, char **arg)
   all_force.resize(numb_models);
 }
 
-void PairDeepMD::read_restart(FILE *)
+void PairTorchMolNet::read_restart(FILE *)
 {
   is_restart = true;
 }
 
-void PairDeepMD::write_restart(FILE *)
+void PairTorchMolNet::write_restart(FILE *)
 {
   // pass
 }
@@ -1005,7 +1005,7 @@ void PairDeepMD::write_restart(FILE *)
    set coeffs for one or more type pairs
 ------------------------------------------------------------------------- */
 
-void PairDeepMD::coeff(int narg, char **arg)
+void PairTorchMolNet::coeff(int narg, char **arg)
 {
   if (!allocated) {
     allocate();
@@ -1038,7 +1038,7 @@ void PairDeepMD::coeff(int narg, char **arg)
 }
 
 
-void PairDeepMD::init_style()
+void PairTorchMolNet::init_style()
 {
 #if LAMMPS_VERSION_NUMBER>=20220324
   neighbor->add_request(this, NeighConst::REQ_FULL);
@@ -1061,7 +1061,7 @@ void PairDeepMD::init_style()
 }
 
 
-double PairDeepMD::init_one(int i, int j)
+double PairTorchMolNet::init_one(int i, int j)
 {
   if (i > numb_types || j > numb_types) {
     char warning_msg[1024];
@@ -1078,7 +1078,7 @@ double PairDeepMD::init_one(int i, int j)
 
 /* ---------------------------------------------------------------------- */
 
-int PairDeepMD::pack_reverse_comm(int n, int first, double *buf)
+int PairTorchMolNet::pack_reverse_comm(int n, int first, double *buf)
 {
   int i,m,last;
 
@@ -1096,7 +1096,7 @@ int PairDeepMD::pack_reverse_comm(int n, int first, double *buf)
 
 /* ---------------------------------------------------------------------- */
 
-void PairDeepMD::unpack_reverse_comm(int n, int *list, double *buf)
+void PairTorchMolNet::unpack_reverse_comm(int n, int *list, double *buf)
 {
   int i,j,m;
 
@@ -1111,7 +1111,7 @@ void PairDeepMD::unpack_reverse_comm(int n, int *list, double *buf)
   }
 }
 
-void *PairDeepMD::extract(const char *str, int &dim)
+void *PairTorchMolNet::extract(const char *str, int &dim)
 {
   if (strcmp(str,"cut_coul") == 0) {
     dim = 0;
