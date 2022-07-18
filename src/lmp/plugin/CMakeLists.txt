@@ -1,6 +1,6 @@
 if(DEFINED LAMMPS_HEADER_DIR OR DEFINED LAMMPS_VERSION)
   message(STATUS "enable LAMMPS plugin mode")
-  add_library(lammpsPluginTest PUBLIC)
+  add_library(lammpsPluginTest INTERFACE)
   set(LAMMPS_HEADER_DIR ${LAMMPS_HEADER_DIR})
   message(STATUS "LAMMPS_HEADER_DIR is ${LAMMPS_HEADER_DIR}")
 
