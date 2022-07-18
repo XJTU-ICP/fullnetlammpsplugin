@@ -59,6 +59,8 @@ void PairTorchMolNet::print_summary(const std::string pre) const
 
 void PairMorse2::compute(int eflag, int vflag)
 {
+  int i, j, ii, jj, inum, jnum, itype, jtype;
+  double xtmp, ytmp, ztmp;
   int *ilist, *jlist, *numneigh, **firstneigh;
 
   ev_init(eflag, vflag);
@@ -68,7 +70,7 @@ void PairMorse2::compute(int eflag, int vflag)
   int *type = atom->type;
   int nlocal = atom->nlocal;
 
-  inum = list->inum;
+  int inum = list->inum;
   ilist = list->ilist;
   numneigh = list->numneigh;
   firstneigh = list->firstneigh;
