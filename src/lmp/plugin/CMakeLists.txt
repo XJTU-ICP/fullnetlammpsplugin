@@ -4,11 +4,11 @@ if(DEFINED LAMMPS_HEADER_DIR OR DEFINED LAMMPS_VERSION)
   set(LAMMPS_HEADER_DIR ${LAMMPS_HEADER_DIR})
   message(STATUS "LAMMPS_HEADER_DIR is ${LAMMPS_HEADER_DIR}")
 
-  target_include_directories(lammpsPluginTest PUBLIC ${LAMMPS_HEADER_DIR})
+  target_include_directories(lammpsPluginTest INTERFACE ${LAMMPS_HEADER_DIR})
   find_package(LAMMPS)
   message(STATUS "LAMMPS version: ${LAMMPS_VERSION}")
   message(STATUS "LAMMPS_HEADER_DIR is ${LAMMPS_HEADER_DIR}")
-  target_link_libraries(lammpsPluginTest PUBLIC LAMMPS::lammps)
+  target_link_libraries(lammpsPluginTest INTERFACE LAMMPS::lammps)
 
   find_package(MPI)
   if(MPI_FOUND)
@@ -18,11 +18,11 @@ if(DEFINED LAMMPS_HEADER_DIR OR DEFINED LAMMPS_VERSION)
     is ${MPI_CXX_LIBRARIES}")
     message(STATUS "MPI_LIBRARIES
     is ${MPI_LIBRARIES}")
-    target_link_libraries(lammpsPluginTest PUBLIC MPI::MPI_CXX)
+    target_link_libraries(lammpsPluginTest INTERFACE MPI::MPI_CXX)
   else()
     # Use LAMMPS serial mpi.h header
     target_include_directories(lammpsPluginTest
-                               PUBLIC "${LAMMPS_SOURCE_DIR}/src/STUBS")
+    INTERFACE "${LAMMPS_SOURCE_DIR}/src/STUBS")
   endif()
 
   # get_lammps_version
@@ -48,7 +48,7 @@ if(DEFINED LAMMPS_HEADER_DIR OR DEFINED LAMMPS_VERSION)
       ${libname} PUBLIC lammpsPluginTest ${LIB_TORCHMOLNET_CC}${variant_name})
     target_include_directories(
       ${libname}
-      PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/..
+      PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/..
               ${LAMMPS_SOURCE_DIR}/src)
 
     target_compile_definitions(
