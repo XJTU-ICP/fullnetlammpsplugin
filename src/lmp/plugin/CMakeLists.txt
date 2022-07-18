@@ -46,7 +46,7 @@ if(DEFINED LAMMPS_HEADER_DIR OR DEFINED LAMMPS_VERSION)
 
     # link: libtorchmolnet
     target_link_libraries(
-      ${libname} PUBLIC lammpsPluginTest ${LIB_TORCHMOLNET_CC}${variant_name})
+      ${libname} PRIVATE lammpsPluginTest ${LIB_TORCHMOLNET_CC}${variant_name})
     target_include_directories(
       ${libname}
       PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/..

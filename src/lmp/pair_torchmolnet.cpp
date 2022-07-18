@@ -16,9 +16,6 @@
 #include "modify.h"
 #include "fix.h"
 #include "citeme.h"
-#ifdef USE_TTM
-#include "fix_ttm_mod.h"
-#endif
 
 #include "pair_torchmolnet.h"
 
@@ -32,7 +29,8 @@ static const char cite_torch_mol_net_package[] =
     "  year = 2022,\n"
     "}\n\n";
 
-PairTorchMolNet::PairTorchMolNet(LAMMPS *lmp) : Pair(lmp)
+PairTorchMolNet::PairTorchMolNet(LAMMPS *lmp)
+    : Pair(lmp)
 {
   if (lmp->citeme)
     lmp->citeme->add(cite_torch_mol_net_package);
