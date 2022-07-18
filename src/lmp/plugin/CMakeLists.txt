@@ -52,6 +52,10 @@ if(DEFINED LAMMPS_HEADER_DIR OR DEFINED LAMMPS_VERSION)
       PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/..
               ${LAMMPS_SOURCE_DIR}/src)
 
+    set_target_properties(
+      ${libname} PROPERTIES INSTALL_RPATH "$ORIGIN;${TORCH_LIBRARIES}"
+                            LINK_FLAGS "-rdynamic")
+
     target_compile_definitions(
       ${libname}
       PUBLIC ${prec_def}
