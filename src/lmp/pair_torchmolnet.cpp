@@ -70,7 +70,7 @@ void PairTorchMolNet::compute(int eflag, int vflag)
   int *type = atom->type;
   int nlocal = atom->nlocal;
 
-  int inum = list->inum;
+  inum = list->inum;
   ilist = list->ilist;
   numneigh = list->numneigh;
   firstneigh = list->firstneigh;

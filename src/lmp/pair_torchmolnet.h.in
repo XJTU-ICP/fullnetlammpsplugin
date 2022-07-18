@@ -60,10 +60,8 @@ namespace LAMMPS_NS
     torchmolnet::TorchMolNet torchmolnet;
 
   protected:
-
     virtual void allocate();
-  }
-
+  };
 }
 
 #endif
