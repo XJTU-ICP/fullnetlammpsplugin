@@ -36,7 +36,7 @@ namespace torchmolnet
          * @brief Pring the model summary.
          *
          */
-        void print_summary() const;
+        void print_summary(const std::string pre=">>>") const;
 
     private:
         std::string m_model_path_;

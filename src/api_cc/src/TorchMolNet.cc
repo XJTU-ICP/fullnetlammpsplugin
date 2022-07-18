@@ -47,19 +47,19 @@ namespace torchmolnet
         return;
     }
 
-    void TorchMolNet::print_summary() const
+    void TorchMolNet::print_summary(const std::string pre) const
     {
-        std::cout << "TorchMolNet summary:" << std::endl;
-        std::cout << "  Model path:       " << m_model_path_ << std::endl;
-        std::cout << "  Device:           " << m_device_ << std::endl;
-        std::cout << "Module build summary:     " << std::endl;
-        std::cout << "  Installed to:     " << global_install_prefix << std::endl;
-        std::cout << "  Git summary:      " << global_git_summ << std::endl;
-        std::cout << "  Git hash:         " << global_git_hash << std::endl;
-        std::cout << "  Git date:         " << global_git_date << std::endl;
-        std::cout << "  Git branch:       " << global_git_branch << std::endl;
-        std::cout << "  Model version:    " << global_model_version << std::endl;
-        std::cout << "  Float precision:  " << global_float_prec << std::endl;
+        std::cout << pre << "TorchMolNet summary:" << std::endl;
+        std::cout << pre << "  Model path:       " << m_model_path_ << std::endl;
+        std::cout << pre << "  Device:           " << m_device_ << std::endl;
+        std::cout << pre << "Module build summary:     " << std::endl;
+        std::cout << pre << "  Installed to:     " << global_install_prefix << std::endl;
+        std::cout << pre << "  Git summary:      " << global_git_summ << std::endl;
+        std::cout << pre << "  Git hash:         " << global_git_hash << std::endl;
+        std::cout << pre << "  Git date:         " << global_git_date << std::endl;
+        std::cout << pre << "  Git branch:       " << global_git_branch << std::endl;
+        std::cout << pre << "  Model version:    " << global_model_version << std::endl;
+        std::cout << pre << "  Float precision:  " << global_float_prec << std::endl;
         std::cout << std::endl;
     }
 
