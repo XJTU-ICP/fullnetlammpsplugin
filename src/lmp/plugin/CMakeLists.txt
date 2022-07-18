@@ -1,14 +1,14 @@
 if(DEFINED LAMMPS_HEADER_DIR OR DEFINED LAMMPS_VERSION)
   message(STATUS "enable LAMMPS plugin mode")
-  add_library(lammpsPluginTest INTERFACE)
+  add_library(lammpsPluginTest PUBLIC)
   set(LAMMPS_HEADER_DIR ${LAMMPS_HEADER_DIR})
   message(STATUS "LAMMPS_HEADER_DIR is ${LAMMPS_HEADER_DIR}")
 
-  target_include_directories(lammpsPluginTest INTERFACE ${LAMMPS_HEADER_DIR})
+  target_include_directories(lammpsPluginTest PUBLIC ${LAMMPS_HEADER_DIR})
   find_package(LAMMPS)
   message(STATUS "LAMMPS version: ${LAMMPS_VERSION}")
   message(STATUS "LAMMPS_HEADER_DIR is ${LAMMPS_HEADER_DIR}")
-  target_link_libraries(lammpsPluginTest INTERFACE LAMMPS::lammps)
+  target_link_libraries(lammpsPluginTest PUBLIC LAMMPS::lammps)
 
   find_package(MPI)
   if(MPI_FOUND)
@@ -18,11 +18,11 @@ if(DEFINED LAMMPS_HEADER_DIR OR DEFINED LAMMPS_VERSION)
     is ${MPI_CXX_LIBRARIES}")
     message(STATUS "MPI_LIBRARIES
     is ${MPI_LIBRARIES}")
-    target_link_libraries(lammpsPluginTest INTERFACE MPI::MPI_CXX)
+    target_link_libraries(lammpsPluginTest PUBLIC MPI::MPI_CXX)
   else()
     # Use LAMMPS serial mpi.h header
     target_include_directories(lammpsPluginTest
-                               INTERFACE "${LAMMPS_SOURCE_DIR}/src/STUBS")
+                               PUBLIC "${LAMMPS_SOURCE_DIR}/src/STUBS")
   endif()
 
   # get_lammps_version
@@ -59,7 +59,7 @@ if(DEFINED LAMMPS_HEADER_DIR OR DEFINED LAMMPS_VERSION)
     install(TARGETS ${libname} DESTINATION lib/)
 
     if(${LAMMPS_VERSION_NUMBER} GREATER_EQUAL 20220324)
-      set(PLUGINNAME "torchmolplugin.so")
+      set(PLUGINNAME "torchmolplugin_lmp.so")
       install(
         CODE "execute_process( \
         COMMAND ${CMAKE_COMMAND} -E make_directory \
