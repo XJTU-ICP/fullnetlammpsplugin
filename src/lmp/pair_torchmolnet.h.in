@@ -10,18 +10,18 @@
 #include <iostream>
 #include <fstream>
 
-#define GIT_SUMM @GIT_SUMM @
-#define GIT_HASH @GIT_HASH @
-#define GIT_BRANCH @GIT_BRANCH @
-#define GIT_DATE @GIT_DATE @
+#define GIT_SUMM @GIT_SUMM@
+#define GIT_HASH @GIT_HASH@
+#define GIT_BRANCH @GIT_BRANCH@
+#define GIT_DATE @GIT_DATE@
 #ifdef NOT_HIGH_PREC
 #define FLOAT_PREC float
 #else
 #define FLOAT_PREC double
 #endif
-#define TORCHMOLNET_ROOT @CMAKE_INSTALL_PREFIX @
-#define Torch_INCLUDE_DIRS @Torch_INCLUDE_DIRS @
-#define TORCH_LIBRARIES @TORCH_LIBRARIES @
+#define TORCHMOLNET_ROOT @CMAKE_INSTALL_PREFIX@
+#define Torch_INCLUDE_DIRS @Torch_INCLUDE_DIRS@
+#define TORCH_LIBRARIES @TORCH_LIBRARIES@
 #define _CVT_STR(x) #x
 #define _CVT_ASSTR(X) _CVT_STR(X)
 #define STR_GIT_SUMM _CVT_ASSTR(GIT_SUMM)
