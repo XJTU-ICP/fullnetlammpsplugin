@@ -2,6 +2,7 @@
 
 namespace torchmolnet
 {
+    TorchMolNet::TorchMolNet() : m_device_(torch::Device(torch::kCPU));
     TorchMolNet::TorchMolNet(const std::string &model_path, const std::string &device) : m_device_(torch::Device(torch::kCPU))
     {
         // Load the model from a file.

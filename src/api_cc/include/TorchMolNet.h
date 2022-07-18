@@ -12,6 +12,11 @@ namespace torchmolnet
     public:
         /**
          * @brief Construct a new Torch Mol Net object
+         * 
+         */
+        TorchMolNet();
+        /**
+         * @brief Construct a new Torch Mol Net object
          *
          * @param[in] model_path Path to the model file.
          * @param[in] device The device to use.
