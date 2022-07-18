@@ -54,7 +54,7 @@ namespace LAMMPS_NS
     void write_data_all(FILE *) override;
     double single(int, int, int, int, double, double, double, double &) override;
     void *extract(const char *, int &) override;
-    void print_summary(const std::string pre=">>>") const
+    void print_summary(const std::string pre = ">>>") const;
 
   private:
     torchmolnet::TorchMolNet torchmolnet;

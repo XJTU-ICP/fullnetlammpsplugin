@@ -52,7 +52,7 @@ void PairTorchMolNet::print_summary(const std::string pre) const
     std::cout << pre << "  TorchMolNet root: " << STR_TORCHMOLNET_ROOT << std::endl;
     std::cout << pre << "  Torch include dirs: " << STR_Torch_INCLUDE_DIRS << std::endl;
     std::cout << pre << "  Torch libraries: " << STR_Torch_LIBRARY << std::endl;
-    std::cout<<pre<<"TorchMolNet Package: "<<std::endl;
+    std::cout << pre << "TorchMolNet Package: " << std::endl;
     torchmolnet.print_summary(pre);
   }
 }
@@ -73,7 +73,8 @@ void PairMorse2::compute(int eflag, int vflag)
   numneigh = list->numneigh;
   firstneigh = list->firstneigh;
 
-  for (ii = 0; ii < inum; ii++) {
+  for (ii = 0; ii < inum; ii++)
+  {
     i = ilist[ii];
     xtmp = x[i][0];
     ytmp = x[i][1];
@@ -82,12 +83,13 @@ void PairMorse2::compute(int eflag, int vflag)
     jlist = firstneigh[i];
     jnum = numneigh[i];
 
-    for (jj = 0; jj < jnum; jj++) {
+    for (jj = 0; jj < jnum; jj++)
+    {
       j = jlist[jj];
       j &= NEIGHMASK;
       jtype = type[j];
 
-      std::cout<<"i="<<i<<" j="<<j<<std::endl;
-      std::cout<<"itype="<<itype<<" jtype="<<jtype<<std::endl;
+      std::cout << "i=" << i << " j=" << j << std::endl;
+      std::cout << "itype=" << itype << " jtype=" << jtype << std::endl;
+    }
   }
-}
