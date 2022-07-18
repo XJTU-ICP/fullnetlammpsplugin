@@ -7,7 +7,7 @@
 
 using namespace LAMMPS_NS;
 
-static Pair *pair_torchmolnet(LAMMPS *lmp)
+static Pair *pair_torchmolnet_creator(LAMMPS *lmp)
 {
   return new PairTorchMolNet(lmp);
 }
@@ -21,8 +21,8 @@ extern "C" void lammpsplugin_init(void *lmp, void *handle, void *regfunc)
   plugin.style = "pair";
   plugin.name = "torchmolnet";
   plugin.info = "torchmolnet pair style";
-  plugin.author = "Han Yanbo";
-  plugin.creator.v1 = (lammpsplugin_factory1 *) &pair_torchmolnet;
+  plugin.author = "Han Yanbo (yanbohan98@gmail.com)";
+  plugin.creator.v1 = (lammpsplugin_factory1 *) &pair_torchmolnet_creator;
   plugin.handle = handle;
   (*register_plugin)(&plugin, lmp);
 }
