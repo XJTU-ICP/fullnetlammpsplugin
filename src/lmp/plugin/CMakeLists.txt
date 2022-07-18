@@ -45,8 +45,8 @@ if(DEFINED LAMMPS_HEADER_DIR OR DEFINED LAMMPS_VERSION)
     add_library(${libname} MODULE ${LMP_SRC})
 
     # link: libtorchmolnet
-    target_link_libraries(
-      ${libname} PRIVATE ${LIB_TORCHMOLNET_CC}${variant_name})
+    target_link_libraries(${libname}
+                          PUBLIC ${LIB_TORCHMOLNET_CC}${variant_name})
     target_include_directories(
       ${libname}
       PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/..
