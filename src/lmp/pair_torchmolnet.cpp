@@ -57,7 +57,7 @@ void PairTorchMolNet::print_summary(const std::string pre) const
   }
 }
 
-void PairMorse2::compute(int eflag, int vflag)
+void PairTorchMolNet::compute(int eflag, int vflag)
 {
   int i, j, ii, jj, inum, jnum, itype, jtype;
   double xtmp, ytmp, ztmp;
