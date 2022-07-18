@@ -1,6 +1,6 @@
 if(DEFINED LAMMPS_HEADER_DIR OR DEFINED LAMMPS_VERSION)
   message(STATUS "enable LAMMPS plugin mode")
-  add_library(lammpsPluginTest INTERFACE)
+  # add_library(lammpsPluginTest INTERFACE)
   set(LAMMPS_HEADER_DIR ${LAMMPS_HEADER_DIR})
   message(STATUS "LAMMPS_HEADER_DIR is ${LAMMPS_HEADER_DIR}")
 
@@ -46,7 +46,7 @@ if(DEFINED LAMMPS_HEADER_DIR OR DEFINED LAMMPS_VERSION)
 
     # link: libtorchmolnet
     target_link_libraries(
-      ${libname} PRIVATE lammpsPluginTest ${LIB_TORCHMOLNET_CC}${variant_name})
+      ${libname} PRIVATE ${LIB_TORCHMOLNET_CC}${variant_name})
     target_include_directories(
       ${libname}
       PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/..
