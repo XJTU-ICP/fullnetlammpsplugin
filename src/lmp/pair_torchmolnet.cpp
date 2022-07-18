@@ -95,3 +95,4 @@ void PairTorchMolNet::compute(int eflag, int vflag)
       std::cout << "itype=" << itype << " jtype=" << jtype << std::endl;
     }
   }
+}
