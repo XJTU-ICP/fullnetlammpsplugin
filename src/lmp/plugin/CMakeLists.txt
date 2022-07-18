@@ -37,6 +37,7 @@ if(DEFINED LAMMPS_HEADER_DIR OR DEFINED LAMMPS_VERSION)
                  "${CMAKE_CURRENT_BINARY_DIR}/pair_torchmolnet.h" @ONLY)
 
   file(GLOB LMP_SRC torchmol_lmpplugin.cpp ../*.cpp)
+  message(LMP_SRC: ${LMP_SRC})
 
   function(_add_lmp_plugin_variant variant_name prec_def)
     set(libname "torchmolnet_lmp${variant_name}")
@@ -46,7 +47,6 @@ if(DEFINED LAMMPS_HEADER_DIR OR DEFINED LAMMPS_VERSION)
     # link: libtorchmolnet
     target_link_libraries(
       ${libname} PUBLIC lammpsPluginTest ${LIB_TORCHMOLNET_CC}${variant_name})
-    message("CMAKE_CURRENT_BINARY_DIR" ${CMAKE_CURRENT_BINARY_DIR})
     target_include_directories(
       ${libname}
       PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/..
