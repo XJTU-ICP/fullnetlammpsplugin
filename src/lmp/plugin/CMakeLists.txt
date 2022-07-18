@@ -8,7 +8,7 @@ if(DEFINED LAMMPS_HEADER_DIR OR DEFINED LAMMPS_VERSION)
   find_package(LAMMPS)
   message(STATUS "LAMMPS version: ${LAMMPS_VERSION}")
   message(STATUS "LAMMPS_HEADER_DIR is ${LAMMPS_HEADER_DIR}")
-  target_link_libraries(lammpsPluginTest INTERFACE LAMMPS::lammps)
+  # target_link_libraries(lammpsPluginTest INTERFACE LAMMPS::lammps)
 
   find_package(MPI)
   if(MPI_FOUND)
