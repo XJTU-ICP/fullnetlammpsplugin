@@ -8,7 +8,7 @@ if(DEFINED LAMMPS_HEADER_DIR OR DEFINED LAMMPS_VERSION)
   find_package(LAMMPS)
   message(STATUS "LAMMPS version: ${LAMMPS_VERSION}")
   message(STATUS "LAMMPS_HEADER_DIR is ${LAMMPS_HEADER_DIR}")
-  # target_link_libraries(lammpsPluginTest INTERFACE LAMMPS::lammps)
+  target_link_libraries(lammpsPluginTest INTERFACE LAMMPS::lammps)
 
   find_package(MPI)
   if(MPI_FOUND)
@@ -45,8 +45,8 @@ if(DEFINED LAMMPS_HEADER_DIR OR DEFINED LAMMPS_VERSION)
     add_library(${libname} MODULE ${LMP_SRC})
 
     # link: libtorchmolnet
-    target_link_libraries(${libname}
-                          PUBLIC ${LIB_TORCHMOLNET_CC}${variant_name})
+    target_link_libraries(
+      ${libname} PUBLIC lammpsPluginTest ${LIB_TORCHMOLNET_CC}${variant_name})
     target_include_directories(
       ${libname}
       PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/..

@@ -38,6 +38,7 @@ PairTorchMolNet::PairTorchMolNet(LAMMPS *lmp)
   {
     error->all(FLERR, "Pair torchmolnet requires metal unit, please set it by \"units metal\", see https://docs.lammps.org/units.html for details.\n");
   }
+  cutoff = 5.;
   print_summary();
 }
 
@@ -55,10 +56,12 @@ void PairTorchMolNet::print_summary(const std::string pre) const
   }
 }
 
+PairTorchMolNet::~PairTorchMolNet() {}
+
 void PairTorchMolNet::compute(int eflag, int vflag)
 {
   int i, j, ii, jj, inum, jnum, itype, jtype;
-  double xtmp, ytmp, ztmp;
+  double xtmp, ytmp, ztmp, xj, yj, zj, rij;
   int *ilist, *jlist, *numneigh, **firstneigh;
 
   ev_init(eflag, vflag);
@@ -72,7 +75,7 @@ void PairTorchMolNet::compute(int eflag, int vflag)
   ilist = list->ilist;
   numneigh = list->numneigh;
   firstneigh = list->firstneigh;
-
+  std::cout << "Computing..." << std::endl;
   for (ii = 0; ii < inum; ii++)
   {
     i = ilist[ii];
@@ -87,10 +90,102 @@ void PairTorchMolNet::compute(int eflag, int vflag)
     {
       j = jlist[jj];
       j &= NEIGHMASK;
+      xj = x[j][0];
+      yj = x[j][1];
+      zj = x[j][2];
+      rij = sqrt((xtmp - xj) * (xtmp - xj) + (ytmp - yj) * (ytmp - yj) + (ztmp - zj) * (ztmp - zj));
       jtype = type[j];
 
-      std::cout << "i=" << i << " j=" << j << std::endl;
-      std::cout << "itype=" << itype << " jtype=" << jtype << std::endl;
+      std::cout << "coordination of" << i << "(" << itype << "):(" << xtmp << "," << ytmp << "," << ztmp << "),";
+      std::cout << "coordination of" << j << "(" << jtype << "):(" << xj << "," << yj << "," << zj << ")" << std::endl;
+      std::cout << "distance of i,j: " << rij << std::endl;
     }
   }
+  std::cout << "Computing end." << std::endl;
+}
+void PairTorchMolNet::settings(int, char **)
+{
+  // no settings
+}
+void PairTorchMolNet::coeff(int narg, char **arg)
+{
+  if (!allocated)
+  {
+    allocate();
+  }
+
+  int n = atom->ntypes;
+  int ilo, ihi, jlo, jhi;
+  ilo = 0;
+  jlo = 0;
+  ihi = n;
+  jhi = n;
+  if (narg == 2)
+  {
+    utils::bounds(FLERR, arg[0], 1, atom->ntypes, ilo, ihi, error);
+    utils::bounds(FLERR, arg[1], 1, atom->ntypes, jlo, jhi, error);
+    if (ilo != 1 || jlo != 1 || ihi != n || jhi != n)
+    {
+      error->all(FLERR, "deepmd requires that the scale should be set to all atom types, i.e. pair_coeff * *.");
+    }
+  }
+  for (int i = ilo; i <= ihi; i++)
+  {
+    for (int j = MAX(jlo, i); j <= jhi; j++)
+    {
+      setflag[i][j] = 1;
+      scale[i][j] = 1.0;
+      if (i > numb_types || j > numb_types)
+      {
+        char warning_msg[1024];
+        sprintf(warning_msg, "Interaction between types %d and %d is set with deepmd, but will be ignored.\n Deepmd model has only %d types, it only computes the mulitbody interaction of types: 1-%d.", i, j, numb_types, numb_types);
+        error->warning(FLERR, warning_msg);
+      }
+    }
+  }
+}
+void PairTorchMolNet::allocate()
+{
+  allocated = 1;
+  int n = atom->ntypes;
+
+  memory->create(setflag, n + 1, n + 1, "pair:setflag");
+  memory->create(cutsq, n + 1, n + 1, "pair:cutsq");
+  memory->create(scale, n + 1, n + 1, "pair:scale");
+
+  for (int i = 1; i <= n; i++)
+  {
+    for (int j = i; j <= n; j++)
+    {
+      setflag[i][j] = 0;
+      scale[i][j] = 0;
+    }
+  }
+  for (int i = 1; i <= numb_types; ++i)
+  {
+    if (i > n)
+      continue;
+    for (int j = i; j <= numb_types; ++j)
+    {
+      if (j > n)
+        continue;
+      setflag[i][j] = 1;
+      scale[i][j] = 1;
+    }
+  }
+}
+double PairTorchMolNet::init_one(int i, int j)
+{
+  if (i > numb_types || j > numb_types)
+  {
+    char warning_msg[1024];
+    sprintf(warning_msg, "Interaction between types %d and %d is set with deepmd, but will be ignored.\n Deepmd model has only %d types, it only computes the mulitbody interaction of types: 1-%d.", i, j, numb_types, numb_types);
+    error->warning(FLERR, warning_msg);
+  }
+
+  if (setflag[i][j] == 0)
+    scale[i][j] = 1.0;
+  scale[j][i] = scale[i][j];
+
+  return cutoff;
 }
