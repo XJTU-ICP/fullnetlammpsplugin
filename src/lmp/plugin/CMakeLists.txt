@@ -38,6 +38,7 @@ if(DEFINED LAMMPS_HEADER_DIR OR DEFINED LAMMPS_VERSION)
 
   file(GLOB LMP_SRC torchmol_lmpplugin.cpp ../*.cpp)
   message(LMP_SRC: ${LMP_SRC})
+  message(LAMMPS_VERSION_NUMBER: ${LAMMPS_VERSION_NUMBER})
 
   function(_add_lmp_plugin_variant variant_name prec_def)
     set(libname "torchmolnet_lmp${variant_name}")
@@ -64,7 +65,8 @@ if(DEFINED LAMMPS_HEADER_DIR OR DEFINED LAMMPS_VERSION)
     install(TARGETS ${libname} DESTINATION lib/)
 
     if(${LAMMPS_VERSION_NUMBER} GREATER_EQUAL 20220324)
-      set(PLUGINNAME "torchmolplugin_lmp.so")
+      set(PLUGINNAME "torchmolplugin.so")
+      #lammps need the plugin named end with 'plugin'
       install(
         CODE "execute_process( \
         COMMAND ${CMAKE_COMMAND} -E make_directory \

@@ -42,6 +42,27 @@ PairTorchMolNet::PairTorchMolNet(LAMMPS *lmp)
   print_summary();
 }
 
+void PairTorchMolNet::settings(int narg, char **arg)
+{
+  if (narg > 2)
+  {
+    error->all(FLERR, "Illegal pair_style command");
+  }
+  if (narg == 1)
+  {
+    std::string model_path = arg[0];
+    std::cout << model_path << std::endl;
+    torchmolnet.init(model_path, "cuda");
+  }
+  else
+  {
+    std::string model_path = arg[0];
+    std::cout << model_path << std::endl;
+    torchmolnet.init(model_path, arg[1]);
+  }
+  numb_types_ = torchmolnet.get_z_max();
+}
+
 void PairTorchMolNet::print_summary(const std::string pre) const
 {
   if (comm->me == 0)
@@ -70,42 +91,64 @@ void PairTorchMolNet::compute(int eflag, int vflag)
   double **f = atom->f;
   int *type = atom->type;
   int nlocal = atom->nlocal;
+  int nghost = atom->nghost;
+  int nall = nlocal + nghost;
 
   inum = list->inum;
   ilist = list->ilist;
   numneigh = list->numneigh;
   firstneigh = list->firstneigh;
-  std::cout << "Computing..." << std::endl;
-  for (ii = 0; ii < inum; ii++)
+
+  std::vector<double> dcoord(nall * 3, 0.0);
+  // get coord
+  for (int ii = 0; ii < nall; ++ii)
   {
-    i = ilist[ii];
-    xtmp = x[i][0];
-    ytmp = x[i][1];
-    ztmp = x[i][2];
-    itype = type[i];
-    jlist = firstneigh[i];
-    jnum = numneigh[i];
-
-    for (jj = 0; jj < jnum; jj++)
+    for (int dd = 0; dd < 3; ++dd)
     {
-      j = jlist[jj];
-      j &= NEIGHMASK;
-      xj = x[j][0];
-      yj = x[j][1];
-      zj = x[j][2];
-      rij = sqrt((xtmp - xj) * (xtmp - xj) + (ytmp - yj) * (ytmp - yj) + (ztmp - zj) * (ztmp - zj));
-      jtype = type[j];
-
-      std::cout << "coordination of" << i << "(" << itype << "):(" << xtmp << "," << ytmp << "," << ztmp << "),";
-      std::cout << "coordination of" << j << "(" << jtype << "):(" << xj << "," << yj << "," << zj << ")" << std::endl;
-      std::cout << "distance of i,j: " << rij << std::endl;
+      dcoord[ii * 3 + dd] = x[ii][dd] - domain->boxlo[dd];
     }
   }
-  std::cout << "Computing end." << std::endl;
-}
-void PairTorchMolNet::settings(int, char **)
-{
-  // no settings
+
+  // get type
+  int newton_pair = force->newton_pair;
+  std::vector<int> dtype(nall);
+  for (int ii = 0; ii < nall; ++ii)
+  {
+    dtype[ii] = type[ii];
+  }
+
+  // get box
+  std::vector<double> dbox(9, 0);
+  dbox[0] = domain->h[0]; // xx
+  dbox[4] = domain->h[1]; // yy
+  dbox[8] = domain->h[2]; // zz
+  dbox[7] = domain->h[3]; // zy
+  dbox[6] = domain->h[4]; // zx
+  dbox[3] = domain->h[5]; // yx
+
+  // predict values.
+  double denergy = 0.0;
+  std::vector<double> dforces(nall * 3, 0.0);
+
+  torchmolnet.predict(denergy, dforces, dcoord, dtype, dbox, nghost);
+
+  // get force
+  for (int ii = 0; ii < nall; ++ii)
+  {
+    for (int dd = 0; dd < 3; ++dd)
+    {
+      f[ii][dd] = dforces[3 * ii + dd];
+    }
+  }
+
+  // return to lammps
+  if (eflag)
+  {
+    eng_vdwl = denergy;
+  }
+
+  if (vflag_fdotr)
+    virial_fdotr_compute();
 }
 void PairTorchMolNet::coeff(int narg, char **arg)
 {
@@ -126,7 +169,7 @@ void PairTorchMolNet::coeff(int narg, char **arg)
     utils::bounds(FLERR, arg[1], 1, atom->ntypes, jlo, jhi, error);
     if (ilo != 1 || jlo != 1 || ihi != n || jhi != n)
     {
-      error->all(FLERR, "deepmd requires that the scale should be set to all atom types, i.e. pair_coeff * *.");
+      error->all(FLERR, "This pair type requires that the scale should be set to all atom types, i.e. pair_coeff * *.");
     }
   }
   for (int i = ilo; i <= ihi; i++)
@@ -135,10 +178,10 @@ void PairTorchMolNet::coeff(int narg, char **arg)
     {
       setflag[i][j] = 1;
       scale[i][j] = 1.0;
-      if (i > numb_types || j > numb_types)
+      if (i > numb_types_ || j > numb_types_)
       {
         char warning_msg[1024];
-        sprintf(warning_msg, "Interaction between types %d and %d is set with deepmd, but will be ignored.\n Deepmd model has only %d types, it only computes the mulitbody interaction of types: 1-%d.", i, j, numb_types, numb_types);
+        sprintf(warning_msg, "Interaction between types %d and %d is set in your input file, but will be ignored.\n This model has only %d types, it only computes the multibody interaction of types: 1-%d.", i, j, numb_types_, numb_types_);
         error->warning(FLERR, warning_msg);
       }
     }
@@ -161,11 +204,11 @@ void PairTorchMolNet::allocate()
       scale[i][j] = 0;
     }
   }
-  for (int i = 1; i <= numb_types; ++i)
+  for (int i = 1; i <= numb_types_; ++i)
   {
     if (i > n)
       continue;
-    for (int j = i; j <= numb_types; ++j)
+    for (int j = i; j <= numb_types_; ++j)
     {
       if (j > n)
         continue;
@@ -176,10 +219,10 @@ void PairTorchMolNet::allocate()
 }
 double PairTorchMolNet::init_one(int i, int j)
 {
-  if (i > numb_types || j > numb_types)
+  if (i > numb_types_ || j > numb_types_)
   {
     char warning_msg[1024];
-    sprintf(warning_msg, "Interaction between types %d and %d is set with deepmd, but will be ignored.\n Deepmd model has only %d types, it only computes the mulitbody interaction of types: 1-%d.", i, j, numb_types, numb_types);
+    sprintf(warning_msg, "Interaction between types %d and %d is set in your input file, but will be ignored.\n This model has only %d types, it only computes the mulitbody interaction of types: 1-%d.", i, j, numb_types_, numb_types_);
     error->warning(FLERR, warning_msg);
   }
 
