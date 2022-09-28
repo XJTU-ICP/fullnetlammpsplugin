@@ -57,9 +57,12 @@ namespace LAMMPS_NS
     void print_summary(const std::string pre = ">>>") const;
 
   private:
-    torchmolnet::TorchMolNet torchmolnet;
+    torchmolnet::TorchMolNet torchmolnet_;
     int numb_types_;
-    double cutoff;
+    double cutoff_;
+    // debug usage only
+    long numb_computes_;
+    std::fstream debug_xyz_file_;
 
   protected:
     virtual void allocate();

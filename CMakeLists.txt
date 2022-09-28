@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.0.0)
 project(lammpsPluginTest VERSION 0.1.0)
 
+# use c++ 17
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 # set op prec
 set(HIGH_PREC_DEF "HIGH_PREC")
 # this defination doesn't work, but leaving it empty will cause error
@@ -61,10 +65,10 @@ else()
   endif()
 endif()
 
-get_cmake_property(_variableNames VARIABLES)
-foreach (_variableName ${_variableNames})
-    message(STATUS "${_variableName}=${${_variableName}}")
-endforeach()
+# get_cmake_property(_variableNames VARIABLES)
+# foreach (_variableName ${_variableNames})
+#     message(STATUS "${_variableName}=${${_variableName}}")
+# endforeach()
 
 message(STATUS "Torch version: ${Torch_VERSION}")
 message(STATUS "Git summary: ${GIT_SUMM}")

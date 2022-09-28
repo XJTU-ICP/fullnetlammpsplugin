@@ -11,7 +11,7 @@ read_data	water.lmp
 mass 		1 16
 mass		2 2
 
-# load the deepmd plugin
+# load the libtorchmolnet plugin
 plugin load libtorchmolnet_lmp.so
 
 pair_style	torchmolnet spookynet_model_traced_1.11.0.pt

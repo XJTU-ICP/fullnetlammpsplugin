@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.h"
+#include <fstream>
 
 namespace torchmolnet
 {
@@ -12,7 +13,6 @@ namespace torchmolnet
     public:
         /**
          * @brief Construct a new Torch Mol Net object
-         *
          */
         TorchMolNet();
         /**
@@ -20,8 +20,9 @@ namespace torchmolnet
          *
          * @param[in] model_path Path to the model file.
          * @param[in] device The device to use.
+         * @param[in] option_debug Whether to print debug information.
          */
-        TorchMolNet(const std::string &model_path, const std::string &device = "cuda");
+        TorchMolNet(const std::string &model_path, const std::string &device = "cuda", bool option_debug = false);
 
         /**
          * @brief Destroy the Torch Mol Net object
@@ -34,16 +35,26 @@ namespace torchmolnet
          *
          * @param[in] model_path Path to the model file.
          * @param[in] device The device name to use.
+         * @param[in] option_debug Whether to print debug information.
          */
-        void init(const std::string &model_path, const std::string &device = "cuda");
+        void init(const std::string &model_path, const std::string &device = "cuda", bool option_debug = false);
 
-        /*function only for development*/
+        /**
+         * @brief Predict the energy and forces for the given molecule.
+         *
+         * @param[in] dcoord The coordinates of the molecule.
+         * @param[in] datype The atom types of the molecule.
+         * @param[in] dbox The cell of the molecule. (not used)
+         * @param[out] denergy The energy of the molecule.
+         * @param[out] dforces The forces of each atom in the molecule.
+         */
         void predict(double &denergy,
                      std::vector<double> &dforces,
-                     const std::vector<double> &dcoord_,
-                     const std::vector<int> &datype_,
+                     const std::vector<double> &dcoord,
+                     const std::vector<int> &datype,
                      const std::vector<double> &dbox,
-                     const int nghost);
+                     const int nghost,
+                     std::vector<double> &deatoms);
 
         /**
          * @brief Pring the model summary.
@@ -75,7 +86,17 @@ namespace torchmolnet
         /**
          * @brief Whether the model is loaded.
          */
-        bool inited;
+        bool inited_;
+
+        /**
+         * @brief Whether running with debug information for models.
+         */
+        bool option_debug_;
+
+        /**
+         * @brief The debug file to use when setting debug_option=True.
+         */
+        std::fstream file_debug_;
     };
 
 } // namespace torchmolnet

@@ -2,6 +2,7 @@
 #include <string.h>
 #include <iomanip>
 #include <limits>
+// #include <filesystem>
 #include "atom.h"
 #include "domain.h"
 #include "comm.h"
@@ -38,12 +39,19 @@ PairTorchMolNet::PairTorchMolNet(LAMMPS *lmp)
   {
     error->all(FLERR, "Pair torchmolnet requires metal unit, please set it by \"units metal\", see https://docs.lammps.org/units.html for details.\n");
   }
-  cutoff = 5.;
+  cutoff_ = 5.;
   print_summary();
 }
 
 void PairTorchMolNet::settings(int narg, char **arg)
 {
+  numb_computes_ = 0;
+  // if (std::filesystem::exists("debug"))
+  // {
+  //   std::filesystem::remove_all("debug");
+  // }
+  // std::filesystem::create_directory("debug");
+
   if (narg > 2)
   {
     error->all(FLERR, "Illegal pair_style command");
@@ -52,15 +60,15 @@ void PairTorchMolNet::settings(int narg, char **arg)
   {
     std::string model_path = arg[0];
     std::cout << model_path << std::endl;
-    torchmolnet.init(model_path, "cuda");
+    torchmolnet_.init(model_path, "cuda");
   }
   else
   {
     std::string model_path = arg[0];
     std::cout << model_path << std::endl;
-    torchmolnet.init(model_path, arg[1]);
+    torchmolnet_.init(model_path, arg[1]);
   }
-  numb_types_ = torchmolnet.get_z_max();
+  numb_types_ = torchmolnet_.get_z_max();
 }
 
 void PairTorchMolNet::print_summary(const std::string pre) const
@@ -73,7 +81,7 @@ void PairTorchMolNet::print_summary(const std::string pre) const
     std::cout << pre << "  Torch include dirs: " << STR_Torch_INCLUDE_DIRS << std::endl;
     std::cout << pre << "  Torch libraries: " << STR_Torch_LIBRARY << std::endl;
     std::cout << pre << "TorchMolNet Package: " << std::endl;
-    torchmolnet.print_summary(pre);
+    torchmolnet_.print_summary(pre);
   }
 }
 
@@ -129,8 +137,9 @@ void PairTorchMolNet::compute(int eflag, int vflag)
   // predict values.
   double denergy = 0.0;
   std::vector<double> dforces(nall * 3, 0.0);
+  std::vector<double> deatoms(nall, 0.0);
 
-  torchmolnet.predict(denergy, dforces, dcoord, dtype, dbox, nghost);
+  torchmolnet_.predict(denergy, dforces, dcoord, dtype, dbox, nghost, deatoms);
 
   // get force
   for (int ii = 0; ii < nall; ++ii)
@@ -142,14 +151,55 @@ void PairTorchMolNet::compute(int eflag, int vflag)
   }
 
   // return to lammps
-  if (eflag)
+  if (eflag_global)
+    eng_vdwl += denergy;
+  if (eflag_atom)
   {
-    eng_vdwl = denergy;
+    for (int ii = 0; ii < nall; ii++)
+      eatom[ii] += deatoms[ii];
   }
 
   if (vflag_fdotr)
     virial_fdotr_compute();
+
+  // numb_computes_++;
+  // debug_xyz_file_.open("debug/" + std::to_string(numb_computes_) + ".xyz", std::ofstream::out);
+
+  // // std::cout << "Computing..." << std::endl;
+  // for (ii = 0; ii < inum; ii++)
+  // {
+  //   i = ilist[ii];
+  //   xtmp = x[i][0];
+  //   ytmp = x[i][1];
+  //   ztmp = x[i][2];
+  //   itype = type[i];
+  //   jlist = firstneigh[i];
+  //   jnum = numneigh[i];
+  //   debug_xyz_file_ << jnum << std::endl;
+  //   debug_xyz_file_ << "nlocal + nghost:" << nall << " "
+  //                  << "nlocal:" << nlocal << std::endl;
+  //   debug_xyz_file_ << itype << " " << xtmp << " " << ytmp << " " << ztmp << "#" << " " << i+1 << std::endl;
+  //   for (jj = 0; jj < jnum; jj++)
+  //   {
+  //     j = jlist[jj];
+  //     j &= NEIGHMASK;
+  //     xj = x[j][0];
+  //     yj = x[j][1];
+  //     zj = x[j][2];
+  //     // rij = sqrt((xtmp - xj) * (xtmp - xj) + (ytmp - yj) * (ytmp - yj) + (ztmp - zj) * (ztmp - zj));
+  //     jtype = type[j];
+
+  //     // std::cout << "coordination of" << i << "(" << itype << "):(" << xtmp << "," << ytmp << "," << ztmp << "),";
+  //     // std::cout << "coordination of" << j << "(" << jtype << "):(" << xj << "," << yj << "," << zj << ")" << std::endl;
+  //     // std::cout << "distance of i,j: " << rij << std::endl;
+
+  //     debug_xyz_file_ << jtype << " " << xj << " " << yj << " " << zj << "#" << " " << j+1 << std::endl;
+  //   }
+  // }
+  // debug_xyz_file_.close();
+  // // std::cout << "Computing end." << std::endl;
 }
+
 void PairTorchMolNet::coeff(int narg, char **arg)
 {
   if (!allocated)
@@ -230,5 +280,5 @@ double PairTorchMolNet::init_one(int i, int j)
     scale[i][j] = 1.0;
   scale[j][i] = scale[i][j];
 
-  return cutoff;
+  return cutoff_;
 }
