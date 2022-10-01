@@ -53,7 +53,7 @@ namespace torchmolnet
                      const std::vector<double> &dcoord,
                      const std::vector<int> &datype,
                      const std::vector<double> &dbox,
-                     const int nghost,
+                     const long nghost,
                      std::vector<double> &deatoms);
 
         /**

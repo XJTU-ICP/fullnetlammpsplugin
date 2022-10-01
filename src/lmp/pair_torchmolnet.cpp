@@ -2,7 +2,7 @@
 #include <string.h>
 #include <iomanip>
 #include <limits>
-// #include <filesystem>
+#include <filesystem>
 #include "atom.h"
 #include "domain.h"
 #include "comm.h"
@@ -46,11 +46,11 @@ PairTorchMolNet::PairTorchMolNet(LAMMPS *lmp)
 void PairTorchMolNet::settings(int narg, char **arg)
 {
   numb_computes_ = 0;
-  // if (std::filesystem::exists("debug"))
-  // {
-  //   std::filesystem::remove_all("debug");
-  // }
-  // std::filesystem::create_directory("debug");
+  if (std::filesystem::exists("debug"))
+  {
+    std::filesystem::remove_all("debug");
+  }
+  std::filesystem::create_directory("debug");
 
   if (narg > 2)
   {
@@ -60,13 +60,13 @@ void PairTorchMolNet::settings(int narg, char **arg)
   {
     std::string model_path = arg[0];
     std::cout << model_path << std::endl;
-    torchmolnet_.init(model_path, "cuda");
+    torchmolnet_.init(model_path, "cuda", true);
   }
   else
   {
     std::string model_path = arg[0];
     std::cout << model_path << std::endl;
-    torchmolnet_.init(model_path, arg[1]);
+    torchmolnet_.init(model_path, arg[1], true);
   }
   numb_types_ = torchmolnet_.get_z_max();
 }
@@ -107,6 +107,9 @@ void PairTorchMolNet::compute(int eflag, int vflag)
   numneigh = list->numneigh;
   firstneigh = list->firstneigh;
 
+  numb_computes_++;
+  debug_xyz_file_.open("debug/" + std::to_string(numb_computes_) + ".output", std::ofstream::out);
+
   std::vector<double> dcoord(nall * 3, 0.0);
   // get coord
   for (int ii = 0; ii < nall; ++ii)
@@ -139,17 +142,80 @@ void PairTorchMolNet::compute(int eflag, int vflag)
   std::vector<double> dforces(nall * 3, 0.0);
   std::vector<double> deatoms(nall, 0.0);
 
-  torchmolnet_.predict(denergy, dforces, dcoord, dtype, dbox, nghost, deatoms);
+  numb_computes_++;
+  debug_xyz_file_.open("debug/" + std::to_string(numb_computes_) + ".debuglog", std::ofstream::out);
+  // std::cout << "Computing..." << std::endl;
+  // std::cout << "inum:" << inum << std::endl;
 
-  // get force
-  for (int ii = 0; ii < nall; ++ii)
+  double atom_wise_denergy = 0.0;
+  double sum_of_atom_wise_deatoms = 0.0;
+  std::vector<double> vector_of_atom_wise_deatoms(nlocal, 0.0);
+  std::vector<int> atom_wise_dtype(nall);
+  std::vector<double> atom_wise_dcoord(nall * 3, 0.0);
+  std::vector<double> atom_wise_dforces(nall * 3, 0.0);
+  std::vector<double> atom_wise_deatoms(nall, 0.0);
+  for (ii = 0; ii < inum; ii++)
   {
+    i = ilist[ii];
+    xtmp = x[i][0];
+    ytmp = x[i][1];
+    ztmp = x[i][2];
+    itype = type[i];
+    jlist = firstneigh[i];
+    jnum = numneigh[i];
+    debug_xyz_file_ << jnum << std::endl;
+
+    // std::cout << "i:" << i << " jnum:" << jnum << std::endl;
+    // debug_xyz_file_ << "nlocal + nghost:" << nall << " "
+    //                 << "nlocal:" << nlocal << std::endl;
+    // debug_xyz_file_ << itype << " " << xtmp << " " << ytmp << " " << ztmp << "#"
+    //                 << " " << i + 1 << " " << std::endl;
+    for (jj = 0; jj < jnum; jj++)
+    {
+      j = jlist[jj];
+      j &= NEIGHMASK;
+      xj = x[j][0];
+      yj = x[j][1];
+      zj = x[j][2];
+      // rij = sqrt((xtmp - xj) * (xtmp - xj) + (ytmp - yj) * (ytmp - yj) + (ztmp - zj) * (ztmp - zj));
+      jtype = type[j];
+
+      // std::cout << "coordination of" << i << "(" << itype << "):(" << xtmp << "," << ytmp << "," << ztmp << "),";
+      // std::cout << "coordination of" << j << "(" << jtype << "):(" << xj << "," << yj << "," << zj << ")" << std::endl;
+      // std::cout << "distance of i,j: " << rij << std::endl;
+
+      // debug_xyz_file_ << jtype << " " << xj << " " << yj << " " << zj << "#"
+      //                 << " " << j + 1 << " " << rij << std::endl;
+    }
+    // atom-wise calculation
+    torchmolnet_.predict(atom_wise_denergy, atom_wise_dforces, atom_wise_dcoord, atom_wise_dtype, dbox, jnum, atom_wise_deatoms);
+
+    // get atom-wise energy
+    sum_of_atom_wise_deatoms += atom_wise_deatoms[0];
+    vector_of_atom_wise_deatoms[ii] = atom_wise_deatoms[0];
+
+    // get atom-wise force
     for (int dd = 0; dd < 3; ++dd)
     {
-      f[ii][dd] = dforces[3 * ii + dd];
+      f[ii][dd] = atom_wise_dforces[3 * ii + dd];
+      dforces[3 * ii + dd] = atom_wise_dforces[dd]; // only the first atom
     }
   }
+  // full calculation
+  torchmolnet_.predict(denergy, dforces, dcoord, dtype, dbox, nall, deatoms);
+  debug_xyz_file_ << "sum of atom-wise calculation energy: \n"
+                  << sum_of_atom_wise_deatoms;
+  debug_xyz_file_ << "total calculation energy: \n"
+                  << denergy;
+  debug_xyz_file_ << "total calculation atom-wise energy \t total calculation energy of each atom: \n";
 
+  for (int ii = 0; ii < nlocal; ii++)
+  {
+    debug_xyz_file_ << vector_of_atom_wise_deatoms[ii] << "\t" << deatoms[ii];
+  }
+
+  debug_xyz_file_ << "total calculation force: \n"
+                  << dforces;
   // return to lammps
   if (eflag_global)
     eng_vdwl += denergy;
@@ -161,43 +227,8 @@ void PairTorchMolNet::compute(int eflag, int vflag)
 
   if (vflag_fdotr)
     virial_fdotr_compute();
-
-  // numb_computes_++;
-  // debug_xyz_file_.open("debug/" + std::to_string(numb_computes_) + ".xyz", std::ofstream::out);
-
-  // // std::cout << "Computing..." << std::endl;
-  // for (ii = 0; ii < inum; ii++)
-  // {
-  //   i = ilist[ii];
-  //   xtmp = x[i][0];
-  //   ytmp = x[i][1];
-  //   ztmp = x[i][2];
-  //   itype = type[i];
-  //   jlist = firstneigh[i];
-  //   jnum = numneigh[i];
-  //   debug_xyz_file_ << jnum << std::endl;
-  //   debug_xyz_file_ << "nlocal + nghost:" << nall << " "
-  //                  << "nlocal:" << nlocal << std::endl;
-  //   debug_xyz_file_ << itype << " " << xtmp << " " << ytmp << " " << ztmp << "#" << " " << i+1 << std::endl;
-  //   for (jj = 0; jj < jnum; jj++)
-  //   {
-  //     j = jlist[jj];
-  //     j &= NEIGHMASK;
-  //     xj = x[j][0];
-  //     yj = x[j][1];
-  //     zj = x[j][2];
-  //     // rij = sqrt((xtmp - xj) * (xtmp - xj) + (ytmp - yj) * (ytmp - yj) + (ztmp - zj) * (ztmp - zj));
-  //     jtype = type[j];
-
-  //     // std::cout << "coordination of" << i << "(" << itype << "):(" << xtmp << "," << ytmp << "," << ztmp << "),";
-  //     // std::cout << "coordination of" << j << "(" << jtype << "):(" << xj << "," << yj << "," << zj << ")" << std::endl;
-  //     // std::cout << "distance of i,j: " << rij << std::endl;
-
-  //     debug_xyz_file_ << jtype << " " << xj << " " << yj << " " << zj << "#" << " " << j+1 << std::endl;
-  //   }
-  // }
-  // debug_xyz_file_.close();
-  // // std::cout << "Computing end." << std::endl;
+  debug_xyz_file_.close();
+  std::cout << "Computing end." << std::endl;
 }
 
 void PairTorchMolNet::coeff(int narg, char **arg)

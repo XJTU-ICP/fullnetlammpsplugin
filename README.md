@@ -10,6 +10,13 @@ And if you use CUDA version of torch, make sure your environment has CUDA enviro
 
 You can also set cmake option "-DCMAKE_INSTALL_PREFIX=<path>" to set install target.
 
+### Dependencies
+
+- cuda nvcc
+- complier
+- mpi
+- mkl
+
 ## make and install
 
 One can make the plugin like:
