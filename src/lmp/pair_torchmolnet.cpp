@@ -150,10 +150,11 @@ void PairTorchMolNet::compute(int eflag, int vflag)
   double atom_wise_denergy = 0.0;
   double sum_of_atom_wise_deatoms = 0.0;
   std::vector<double> vector_of_atom_wise_deatoms(nlocal, 0.0);
-  std::vector<int> atom_wise_dtype(nall);
+  std::vector<int> atom_wise_dtype(nall, -1);
   std::vector<double> atom_wise_dcoord(nall * 3, 0.0);
   std::vector<double> atom_wise_dforces(nall * 3, 0.0);
   std::vector<double> atom_wise_deatoms(nall, 0.0);
+
   for (ii = 0; ii < inum; ii++)
   {
     i = ilist[ii];
@@ -170,6 +171,10 @@ void PairTorchMolNet::compute(int eflag, int vflag)
     //                 << "nlocal:" << nlocal << std::endl;
     // debug_xyz_file_ << itype << " " << xtmp << " " << ytmp << " " << ztmp << "#"
     //                 << " " << i + 1 << " " << std::endl;
+    for(int dim=0;dim<3;dim++){
+      atom_wise_dcoord[dim]=x[i][dim];
+    }
+    atom_wise_dtype[0]=itype;
     for (jj = 0; jj < jnum; jj++)
     {
       j = jlist[jj];
@@ -179,6 +184,10 @@ void PairTorchMolNet::compute(int eflag, int vflag)
       zj = x[j][2];
       // rij = sqrt((xtmp - xj) * (xtmp - xj) + (ytmp - yj) * (ytmp - yj) + (ztmp - zj) * (ztmp - zj));
       jtype = type[j];
+      atom_wise_dcoord[(jj+1)*3+0]=xj;
+      atom_wise_dcoord[(jj+1)*3+1]=yj;
+      atom_wise_dcoord[(jj+1)*3+2]=zj;
+      atom_wise_dtype[jj+1]=jtype;
 
       // std::cout << "coordination of" << i << "(" << itype << "):(" << xtmp << "," << ytmp << "," << ztmp << "),";
       // std::cout << "coordination of" << j << "(" << jtype << "):(" << xj << "," << yj << "," << zj << ")" << std::endl;

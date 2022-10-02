@@ -97,7 +97,7 @@ namespace torchmolnet
 
         std::vector<double> coords_inner(system_size * 3, 0.0);
         std::vector<double> atomic_number_inner(system_size, -1.0);
-        for (long i = 1; i < system_size; i++)
+        for (long i = 0; i < system_size; i++)
         {
             coords_inner[i * 3 + 0] = dcoord[i * 3 + 0];
             coords_inner[i * 3 + 1] = dcoord[i * 3 + 1];
@@ -105,7 +105,7 @@ namespace torchmolnet
             atomic_number_inner[i] = datype[i];
         }
 
-        torch::jit::IValue coords_tensor = torch::tensor(coords_inner, torch::TensorOptions().dtype(torch::kDouble).requires_grad(true)).view({(int)dcoord.size() / 3, 3}).to(m_device_);
+        torch::jit::IValue coords_tensor = torch::tensor(coords_inner, torch::TensorOptions().dtype(torch::kDouble).requires_grad(true)).view({(int)system_size, 3}).to(m_device_);
         torch::jit::IValue atomic_number_tensor = torch::tensor(atomic_number_inner, torch::kLong).to(m_device_);
 
         std::vector<torch::jit::IValue> inputs;
@@ -120,7 +120,7 @@ namespace torchmolnet
         // write info to fp
         if (option_debug_)
         {
-            file_debug_.open("debuginfo.txt", std::ofstream::out);
+            file_debug_.open("debuginfo.txt", std::ofstream::app);
             file_debug_ << "###----INPUT----###" << std::endl;
             file_debug_ << "atomic_number_tensor: \n"
                         << atomic_number_tensor.toTensor().reshape({1, -1}) << std::endl;
@@ -146,7 +146,7 @@ namespace torchmolnet
             deatoms = std::vector<double>(energy_wise_tensor.data_ptr<double>(), energy_wise_tensor.data_ptr<double>() + energy_wise_tensor.numel());
             if (option_debug_)
             {
-                file_debug_.open("debuginfo.txt", std::ofstream::out);
+                file_debug_.open("debuginfo.txt", std::ofstream::app);
                 file_debug_ << "###----OUTPUT----###" << std::endl;
                 file_debug_ << "energy: \n"
                             << denergy << std::endl;
