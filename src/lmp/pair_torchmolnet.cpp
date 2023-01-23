@@ -110,9 +110,9 @@ void PairTorchMolNet::compute(int eflag, int vflag)
   numb_computes_++;
   // debug_xyz_file_.open("debug/" + std::to_string(numb_computes_) + ".output", std::ofstream::out);
 
-  std::vector<double> dcoord(nall * 3, 0.0);
+  std::vector<double> dcoord(nlocal * 3, 0.0);
   // get coord
-  for (int ii = 0; ii < nall; ++ii)
+  for (int ii = 0; ii < nlocal; ++ii)
   {
     for (int dd = 0; dd < 3; ++dd)
     {
@@ -122,47 +122,50 @@ void PairTorchMolNet::compute(int eflag, int vflag)
 
   // get type
   int newton_pair = force->newton_pair;
-  std::vector<int> dtype(nall);
-  for (int ii = 0; ii < nall; ++ii)
+  std::vector<int> dtype(nlocal);
+  for (int ii = 0; ii < nlocal; ++ii)
   {
     dtype[ii] = type[ii];
   }
 
   // get box
-  std::vector<double> dbox(9, 0);
-  dbox[0] = domain->h[0]; // xx
-  dbox[4] = domain->h[1]; // yy
-  dbox[8] = domain->h[2]; // zz
-  dbox[7] = domain->h[3]; // zy
-  dbox[6] = domain->h[4]; // zx
-  dbox[3] = domain->h[5]; // yx
+  std::vector<double> dbox(3, 0);
+  // dbox[0] = domain->h[0]; // xx
+  // dbox[4] = domain->h[1]; // yy
+  // dbox[8] = domain->h[2]; // zz
+  // dbox[7] = domain->h[3]; // zy
+  // dbox[6] = domain->h[4]; // zx
+  // dbox[3] = domain->h[5]; // yx
+  dbox[0] = domain->h[0];
+  dbox[1] = domain->h[1];
+  dbox[2] = domain->h[2];
 
   // predict values.
   double denergy = 0.0;
-  std::vector<double> dforces(nall * 3, 0.0);
-  std::vector<double> deatoms(nall, 0.0);
+  std::vector<double> dforces(nlocal * 3, 0.0);
+  std::vector<double> deatoms(nlocal, 0.0);
 
-  std::cout << "Computing...";
-  std::cout << "inum:" << inum << "to do...\n";
+  // std::cout << "Computing...";
+  // std::cout << "inum:" << inum << "to do...\n";
 
-  double atom_wise_denergy = 0.0;
-  double sum_of_atom_wise_deatoms = 0.0;
-  std::vector<double> vector_of_atom_wise_deatoms(nlocal, 0.0);
-  std::vector<int> atom_wise_dtype(nall, -1);
-  std::vector<double> atom_wise_dcoord(nall * 3, 0.0);
-  std::vector<double> atom_wise_dforces(nall * 3, 0.0);
-  std::vector<double> atom_wise_deatoms(nall, 0.0);
+  // double atom_wise_denergy = 0.0;
+  // double sum_of_atom_wise_deatoms = 0.0;
+  // std::vector<double> vector_of_atom_wise_deatoms(nlocal, 0.0);
+  // std::vector<int> atom_wise_dtype(nall, -1);
+  // std::vector<double> atom_wise_dcoord(nall * 3, 0.0);
+  // std::vector<double> atom_wise_dforces(nall * 3, 0.0);
+  // std::vector<double> atom_wise_deatoms(nall, 0.0);
 
-  for (ii = 0; ii < inum; ii++)
-  {
-    i = ilist[ii];
-    xtmp = x[i][0];
-    ytmp = x[i][1];
-    ztmp = x[i][2];
-    itype = type[i];
-    jlist = firstneigh[i];
-    jnum = numneigh[i];
-    std::cout << i;
+  // for (ii = 0; ii < inum; ii++)
+  // {
+  //   i = ilist[ii];
+  //   xtmp = x[i][0];
+  //   ytmp = x[i][1];
+  //   ztmp = x[i][2];
+  //   itype = type[i];
+  //   jlist = firstneigh[i];
+  //   jnum = numneigh[i];
+  //   std::cout << i;
     // debug_xyz_file_ << jnum << std::endl;
 
     // std::cout << "i:" << i << " jnum:" << jnum << std::endl;
@@ -170,52 +173,9 @@ void PairTorchMolNet::compute(int eflag, int vflag)
     //                 << "nlocal:" << nlocal << std::endl;
     // debug_xyz_file_ << itype << " " << xtmp << " " << ytmp << " " << ztmp << "#"
     //                 << " " << i + 1 << " " << std::endl;
-    for (int dim = 0; dim < 3; dim++)
-    {
-      atom_wise_dcoord[dim] = x[i][dim];
-    }
-    atom_wise_dtype[0] = itype;
-    for (jj = 0; jj < jnum; jj++)
-    {
-      j = jlist[jj];
-      j &= NEIGHMASK;
-      xj = x[j][0];
-      yj = x[j][1];
-      zj = x[j][2];
-      // rij = sqrt((xtmp - xj) * (xtmp - xj) + (ytmp - yj) * (ytmp - yj) + (ztmp - zj) * (ztmp - zj));
-      jtype = type[j];
-      atom_wise_dcoord[(jj + 1) * 3 + 0] = xj;
-      atom_wise_dcoord[(jj + 1) * 3 + 1] = yj;
-      atom_wise_dcoord[(jj + 1) * 3 + 2] = zj;
-      atom_wise_dtype[jj + 1] = jtype;
 
-      // std::cout << "coordination of" << i << "(" << itype << "):(" << xtmp << "," << ytmp << "," << ztmp << "),";
-      // std::cout << "coordination of" << j << "(" << jtype << "):(" << xj << "," << yj << "," << zj << ")" << std::endl;
-      // std::cout << "distance of i,j: " << rij << std::endl;
-
-      // debug_xyz_file_ << jtype << " " << xj << " " << yj << " " << zj << "#"
-      //                 << " " << j + 1 << " " << rij << std::endl;
-    }
-    // atom-wise calculation
-    torchmolnet_.predict(atom_wise_denergy, atom_wise_dforces, atom_wise_dcoord, atom_wise_dtype, dbox, jnum, atom_wise_deatoms);
-
-    // get atom-wise energy
-    sum_of_atom_wise_deatoms += atom_wise_deatoms[0];
-    // std::cout << atom_wise_deatoms[0];
-    // std::cout << " " << xj << " " << yj << " " << zj;
-
-    vector_of_atom_wise_deatoms[ii] = atom_wise_deatoms[0];
-
-    // get atom-wise force
-    for (int dd = 0; dd < 3; ++dd)
-    {
-      f[ii][dd] = atom_wise_dforces[dd];// only the first atom
-      // std::cout << " " << atom_wise_dforces[dd];
-    }
-    // std::cout << std::endl;
-  }
   // full calculation
-  // torchmolnet_.predict(denergy, dforces, dcoord, dtype, dbox, nall - 1, deatoms);
+  torchmolnet_.predict(denergy, dforces, dcoord, dtype, dbox, nlocal - 1, deatoms);
   // debug_xyz_file_ << "sum of atom-wise calculation energy: \n"
   //                 << sum_of_atom_wise_deatoms << std::endl;
   // debug_xyz_file_ << "total calculation energy: \n"
@@ -229,9 +189,18 @@ void PairTorchMolNet::compute(int eflag, int vflag)
 
   // debug_xyz_file_ << "total calculation force: \n"
   //                 << dforces << std::endl;
+
+  // get force
+  for (int ii = 0; ii < nlocal; ++ii)
+  {
+    for (int dd = 0; dd < 3; ++dd)
+    {
+      f[ii][dd] = dforces[ii * 3 + dd];
+    }
+  }
   // return to lammps
   if (eflag_global)
-    eng_vdwl += sum_of_atom_wise_deatoms;
+    eng_vdwl += denergy;
   if (eflag_atom)
   {
     for (int ii = 0; ii < nall; ii++)
@@ -240,7 +209,7 @@ void PairTorchMolNet::compute(int eflag, int vflag)
 
   if (vflag_fdotr)
     virial_fdotr_compute();
-  std::cout << std::endl;
+  // std::cout << std::endl;
   // debug_xyz_file_.close();
   // std::cout << "Computing end." << std::endl;
 }

@@ -95,18 +95,19 @@ namespace torchmolnet
         torch::jit::IValue total_charge_tensor = torch::from_blob(total_charge, {1}, torch::kDouble).to(m_device_);
         torch::jit::IValue mag_moment_tensor = torch::from_blob(mag_moment, {1}, torch::kDouble).to(m_device_);
 
-        std::vector<double> coords_inner(system_size * 3, 0.0);
-        std::vector<double> atomic_number_inner(system_size, -1.0);
-        for (long i = 0; i < system_size; i++)
-        {
-            coords_inner[i * 3 + 0] = dcoord[i * 3 + 0];
-            coords_inner[i * 3 + 1] = dcoord[i * 3 + 1];
-            coords_inner[i * 3 + 2] = dcoord[i * 3 + 2];
-            atomic_number_inner[i] = datype[i];
-        }
+        // std::vector<double> coords_inner(system_size * 3, 0.0);
+        // std::vector<double> atomic_number_inner(system_size, -1.0);
+        // for (long i = 0; i < system_size; i++)
+        // {
+        //     coords_inner[i * 3 + 0] = dcoord[i * 3 + 0];
+        //     coords_inner[i * 3 + 1] = dcoord[i * 3 + 1];
+        //     coords_inner[i * 3 + 2] = dcoord[i * 3 + 2];
+        //     atomic_number_inner[i] = datype[i];
+        // }
 
-        torch::jit::IValue coords_tensor = torch::tensor(coords_inner, torch::TensorOptions().dtype(torch::kDouble).requires_grad(true)).view({(int)system_size, 3}).to(m_device_);
-        torch::jit::IValue atomic_number_tensor = torch::tensor(atomic_number_inner, torch::kLong).to(m_device_);
+        torch::jit::IValue coords_tensor = torch::tensor(dcoord, torch::TensorOptions().dtype(torch::kDouble).requires_grad(true)).view({(int)system_size, 3}).to(m_device_);
+        torch::jit::IValue atomic_number_tensor = torch::tensor(datype, torch::kLong).to(m_device_);
+        torch::jit::IValue dbox_tensor = torch::tensor(dbox, torch::kDouble).view({3}).to(m_device_);
 
         std::vector<torch::jit::IValue> inputs;
 
@@ -116,6 +117,7 @@ namespace torchmolnet
         inputs.push_back(coords_tensor);
         inputs.push_back(tensor_idx_i);
         inputs.push_back(tensor_idx_j);
+        inputs.push_back(dbox_tensor);
 
         // write info to fp
         if (option_debug_)
@@ -130,6 +132,8 @@ namespace torchmolnet
                         << mag_moment_tensor.toTensor() << std::endl;
             file_debug_ << "coords_tensor: \n"
                         << coords_tensor.toTensor().reshape({-1, 3}) << std::endl;
+            file_debug_ << "dbox_tensor: \n"
+                        << dbox_tensor.toTensor() << std::endl;
             file_debug_ << "###----INPUT----###" << std::endl;
             file_debug_.close();
         }
