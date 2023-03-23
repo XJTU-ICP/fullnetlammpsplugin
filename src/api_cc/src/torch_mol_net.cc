@@ -169,7 +169,7 @@ namespace torchmolnet
         {
             std::cerr << "error calculating.\n";
             std::cout << e.what();
-            return;
+            exit(1);
         }
     }
 
