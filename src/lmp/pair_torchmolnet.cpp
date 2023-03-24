@@ -39,7 +39,6 @@ PairTorchMolNet::PairTorchMolNet(LAMMPS *lmp)
   {
     error->all(FLERR, "Pair torchmolnet requires metal unit, please set it by \"units metal\", see https://docs.lammps.org/units.html for details.\n");
   }
-  cutoff_ = 10.;
   print_summary();
 }
 
@@ -52,22 +51,33 @@ void PairTorchMolNet::settings(int narg, char **arg)
   // }
   // std::filesystem::create_directory("debug");
 
-  if (narg > 2)
+  if (narg > 3)
   {
     error->all(FLERR, "Illegal pair_style command");
   }
   if (narg == 1)
   {
     std::string model_path = arg[0];
-    std::cout << model_path << std::endl;
+    std::cout << "Load model from " << model_path << std::endl;
+    std::cout << "Device set to default value cuda." << std::endl;
     torchmolnet_.init(model_path, "cuda");
+  }
+  else if (narg == 2)
+  {
+    std::string model_path = arg[0];
+    std::cout << "Load model from " << model_path << std::endl;
+    std::cout << "Device set input value " << arg[1] << std::endl;
+    torchmolnet_.init(model_path, arg[1]);
   }
   else
   {
     std::string model_path = arg[0];
-    std::cout << model_path << std::endl;
-    torchmolnet_.init(model_path, arg[1]);
+    std::cout << "Load model from " << model_path << std::endl;
+    std::cout << "Device set input value " << arg[1] << std::endl;
+    torchmolnet_.init(model_path, arg[1], std::stod(arg[2]));
   }
+  cutoff_ = torchmolnet_.get_cutoff();
+  std::cout << "Cutoff set to " << cutoff_ << std::endl;
   numb_types_ = torchmolnet_.get_z_max();
 }
 

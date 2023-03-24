@@ -59,4 +59,30 @@ namespace torchmolnet
         }
         select_by_type(fwd_map, bkw_map, nghost_real, dcoord_, datype_, nghost, sel_type);
     }
+    int get_neighbors(
+        torch::Tensor positions,
+        torch::Tensor cell,
+        float cutoff,
+        torch::Tensor &idx_i,
+        torch::Tensor &idx_j,
+        torch::Tensor &cell_shifts)
+    {
+        // calculate the neighbors of atom and return pair and shift vectors.
+        // positions: (N, 3)
+        // box: (3)
+        // cutoff: float
+        // idx_i: (M,)
+        // idx_j: (M,)
+        // cell_shifts: (M, 3)
+
+        torch::Tensor dis_vec = positions.view({-1, 1, 3}) - positions.view({1, -1, 3});
+        torch::Tensor dis = torch::norm(dis_vec - cell.view({1, 1, 3}) * torch::round(dis_vec / cell.view({1, 1, 3})), 2, 2) + torch::eye(positions.size(0), torch::kFloat) * cutoff * 2;
+        torch::Tensor neighbors = torch::nonzero(dis < cutoff);
+        idx_i = neighbors.select(1, 0);
+        idx_j = neighbors.select(1, 1);
+        cell_shifts = torch::where(
+                          dis_vec > cell / 2, 1, torch::where(dis_vec < -cell / 2, -1, 0))
+                          .index({neighbors.select(1, 0), neighbors.select(1, 1)});
+        return 0;
+    }
 } // namespace torchmolnet

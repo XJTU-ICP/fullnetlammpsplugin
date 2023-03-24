@@ -5,20 +5,21 @@ namespace torchmolnet
     TorchMolNet::TorchMolNet() : m_device_(torch::Device(torch::kCUDA)), inited_(false), option_debug_(false)
     {
     }
-    TorchMolNet::TorchMolNet(const std::string &model_path, const std::string &device, const bool option_debug) : m_device_(torch::Device(torch::kCUDA))
+    TorchMolNet::TorchMolNet(const std::string &model_path, const std::string &device, double cutoff, const bool option_debug) : m_device_(torch::Device(torch::kCUDA))
     {
-        init(model_path, device, option_debug);
+        init(model_path, device, cutoff, option_debug);
     }
 
     TorchMolNet::~TorchMolNet()
     {
     }
 
-    void TorchMolNet::init(const std::string &model_path, const std::string &device, const bool option_debug)
+    void TorchMolNet::init(const std::string &model_path, const std::string &device, double cutoff, const bool option_debug)
     {
         // Load the model from a file.
         m_model_path_ = model_path;
         option_debug_ = option_debug;
+        cutoff_ = cutoff;
 
         if (option_debug_)
         {
@@ -39,14 +40,14 @@ namespace torchmolnet
         {
             if (device == "cuda")
             {
-                std::cout << "Using device as gpu: " << device << std::endl;
+                std::cout << "Using device gpu." << std::endl;
                 m_device_ = torch::Device(torch::kCUDA);
                 m_model_.to(m_device_);
                 inited_ = true;
             }
             else if (device == "cpu")
             {
-                std::cout << "Using device as cpu: " << device << std::endl;
+                std::cout << "Using device cpu." << std::endl;
 
                 m_device_ = torch::Device(torch::kCPU);
                 m_model_.to(m_device_);
@@ -84,13 +85,6 @@ namespace torchmolnet
         // TODO: api for charge and mag_moment.
         double total_charge[] = {0.0};
         double mag_moment[] = {0.0};
-        // TODO: more efficient way to generate idx.
-        torch::Tensor tensor_idx = torch::arange(0, system_size, torch::kLong);
-        torch::Tensor tensor_idx_i_tmp = tensor_idx.view({system_size, 1}).expand({system_size, system_size}).reshape(system_size * system_size);
-        torch::Tensor tensor_idx_j_tmp = tensor_idx.view({1, system_size}).expand({system_size, system_size}).reshape(system_size * system_size);
-        // exclude self-interactions
-        torch::Tensor tensor_idx_i = tensor_idx_i_tmp.index({tensor_idx_i_tmp != tensor_idx_j_tmp}).to(m_device_);
-        torch::Tensor tensor_idx_j = tensor_idx_j_tmp.index({tensor_idx_i_tmp != tensor_idx_j_tmp}).to(m_device_);
 
         torch::jit::IValue total_charge_tensor = torch::from_blob(total_charge, {1}, torch::kDouble).to(m_device_);
         torch::jit::IValue mag_moment_tensor = torch::from_blob(mag_moment, {1}, torch::kDouble).to(m_device_);
@@ -108,6 +102,11 @@ namespace torchmolnet
         torch::jit::IValue coords_tensor = torch::tensor(dcoord, torch::TensorOptions().dtype(torch::kDouble).requires_grad(true)).view({(int)system_size, 3}).to(m_device_);
         torch::jit::IValue atomic_number_tensor = torch::tensor(datype, torch::kLong).to(m_device_);
         torch::jit::IValue dbox_tensor = torch::tensor(dbox, torch::kDouble).view({3}).to(m_device_);
+        // TODO: more efficient way to generate idx.
+        torch::Tensor tensor_idx_i;
+        torch::Tensor tensor_idx_j;
+        torch::Tensor tensor_cell_shifts;
+        get_neighbors(coords_tensor.toTensor(), torch::diag(dbox_tensor.toTensor()), cutoff_, tensor_idx_i, tensor_idx_j, tensor_cell_shifts);
 
         std::vector<torch::jit::IValue> inputs;
 
@@ -118,6 +117,7 @@ namespace torchmolnet
         inputs.push_back(tensor_idx_i);
         inputs.push_back(tensor_idx_j);
         inputs.push_back(dbox_tensor);
+        inputs.push_back(tensor_cell_shifts);
 
         // write info to fp
         if (option_debug_)
@@ -195,6 +195,19 @@ namespace torchmolnet
         {
             // TODO: get the max atomic number from the model.
             return 87;
+        }
+        else
+        {
+            throw std::runtime_error("TorchMolNet not inited");
+            return -1;
+        }
+    }
+
+    int TorchMolNet::get_cutoff() const
+    {
+        if (inited_)
+        {
+            return cutoff_;
         }
         else
         {

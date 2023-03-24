@@ -20,9 +20,10 @@ namespace torchmolnet
          *
          * @param[in] model_path Path to the model file.
          * @param[in] device The device to use.
+         * @param[in] cutoff The cutoff to use.
          * @param[in] option_debug Whether to print debug information.
          */
-        TorchMolNet(const std::string &model_path, const std::string &device = "cuda", bool option_debug = false);
+        TorchMolNet(const std::string &model_path, const std::string &device = "cuda", double cutoff = 5.291772105638412, bool option_debug = false);
 
         /**
          * @brief Destroy the Torch Mol Net object
@@ -37,7 +38,7 @@ namespace torchmolnet
          * @param[in] device The device name to use.
          * @param[in] option_debug Whether to print debug information.
          */
-        void init(const std::string &model_path, const std::string &device = "cuda", bool option_debug = false);
+        void init(const std::string &model_path, const std::string &device = "cuda", double cutoff = 5.291772105638412, bool option_debug = false);
 
         /**
          * @brief Predict the energy and forces for the given molecule.
@@ -70,6 +71,13 @@ namespace torchmolnet
          */
         int get_z_max() const;
 
+        /**
+         * @brief Get model's cutoff.
+         *
+         * @return Model's cutoff.
+         */
+        int get_cutoff() const;
+
     private:
         /**
          * @brief The model path to use.
@@ -97,6 +105,11 @@ namespace torchmolnet
          * @brief The debug file to use when setting debug_option=True.
          */
         std::fstream file_debug_;
+
+        /* 
+         * @brief The cutoff of atoms to use.
+         */
+        double cutoff_;
     };
 
 } // namespace torchmolnet

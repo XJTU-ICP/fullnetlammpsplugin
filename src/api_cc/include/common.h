@@ -23,6 +23,19 @@ namespace torchmolnet
                            const std::vector<int> &datype_,
                            const int &nghost,
                            const int &ntypes);
+    int get_neighbors(
+        torch::Tensor positions,
+        torch::Tensor box,
+        float cutoff,
+        torch::Tensor &idx_i,
+        torch::Tensor &idx_j,
+        torch::Tensor &cell_shifts);
+        // positions: (N, 3)
+        // box: (3) !!!
+        // cutoff: float
+        // idx_i: (M,) output
+        // idx_j: (M,) output
+        // cell_shifts: (M, 3) output
     struct InputNlist
     {
         /// Number of core region atoms
