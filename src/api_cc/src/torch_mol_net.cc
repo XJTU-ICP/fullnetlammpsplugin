@@ -101,12 +101,18 @@ namespace torchmolnet
 
         torch::jit::IValue coords_tensor = torch::tensor(dcoord, torch::TensorOptions().dtype(torch::kDouble).requires_grad(true)).view({(int)system_size, 3}).to(m_device_);
         torch::jit::IValue atomic_number_tensor = torch::tensor(datype, torch::kLong).to(m_device_);
-        torch::jit::IValue dbox_tensor = torch::tensor(dbox, torch::kDouble).view({3}).to(m_device_);
+        torch::jit::IValue dbox_tensor = torch::tensor(dbox, torch::TensorOptions().dtype(torch::kDouble).device(m_device_)).diag().view({1, 3, 3});
         // TODO: more efficient way to generate idx.
         torch::Tensor tensor_idx_i;
         torch::Tensor tensor_idx_j;
         torch::Tensor tensor_cell_shifts;
-        get_neighbors(coords_tensor.toTensor(), torch::diag(dbox_tensor.toTensor()), cutoff_, tensor_idx_i, tensor_idx_j, tensor_cell_shifts);
+        get_neighbors(
+            coords_tensor.toTensor(),
+            torch::tensor(dbox, torch::kDouble).view({3}).to(m_device_),
+            cutoff_,
+            tensor_idx_i,
+            tensor_idx_j,
+            tensor_cell_shifts);
 
         std::vector<torch::jit::IValue> inputs;
 

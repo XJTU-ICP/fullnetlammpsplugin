@@ -77,7 +77,7 @@ void PairTorchMolNet::settings(int narg, char **arg)
     torchmolnet_.init(model_path, arg[1], std::stod(arg[2]));
   }
   cutoff_ = torchmolnet_.get_cutoff();
-  std::cout << "Cutoff set to " << cutoff_ << std::endl;
+  std::cout << "Cutoff set to " << std::setprecision(16) << cutoff_ << std::endl;
   numb_types_ = torchmolnet_.get_z_max();
 }
 

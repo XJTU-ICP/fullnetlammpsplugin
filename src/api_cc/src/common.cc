@@ -62,7 +62,7 @@ namespace torchmolnet
     int get_neighbors(
         torch::Tensor positions,
         torch::Tensor cell,
-        float cutoff,
+        double cutoff,
         torch::Tensor &idx_i,
         torch::Tensor &idx_j,
         torch::Tensor &cell_shifts)
@@ -70,19 +70,28 @@ namespace torchmolnet
         // calculate the neighbors of atom and return pair and shift vectors.
         // positions: (N, 3)
         // box: (3)
-        // cutoff: float
+        // cutoff: double
         // idx_i: (M,)
         // idx_j: (M,)
         // cell_shifts: (M, 3)
 
+        // get device
+        torch::Device device = positions.device();
+
         torch::Tensor dis_vec = positions.view({-1, 1, 3}) - positions.view({1, -1, 3});
-        torch::Tensor dis = torch::norm(dis_vec - cell.view({1, 1, 3}) * torch::round(dis_vec / cell.view({1, 1, 3})), 2, 2) + torch::eye(positions.size(0), torch::kFloat) * cutoff * 2;
+        torch::Tensor dis = torch::norm(
+                                dis_vec - cell.view({1, 1, 3}) * torch::round(
+                                                                     dis_vec / cell.view({1, 1, 3})),
+                                2, 2) +
+                            torch::eye(
+                                positions.size(0), torch::TensorOptions().dtype(torch::kDouble).device(device)) *
+                                cutoff * 2;
         torch::Tensor neighbors = torch::nonzero(dis < cutoff);
         idx_i = neighbors.select(1, 0);
         idx_j = neighbors.select(1, 1);
         cell_shifts = torch::where(
                           dis_vec > cell / 2, 1, torch::where(dis_vec < -cell / 2, -1, 0))
-                          .index({neighbors.select(1, 0), neighbors.select(1, 1)});
+                          .index({neighbors.select(1, 0), neighbors.select(1, 1)}).to(torch::kDouble);
         return 0;
     }
 } // namespace torchmolnet

@@ -26,13 +26,13 @@ namespace torchmolnet
     int get_neighbors(
         torch::Tensor positions,
         torch::Tensor box,
-        float cutoff,
+        double cutoff,
         torch::Tensor &idx_i,
         torch::Tensor &idx_j,
         torch::Tensor &cell_shifts);
         // positions: (N, 3)
         // box: (3) !!!
-        // cutoff: float
+        // cutoff: double
         // idx_i: (M,) output
         // idx_j: (M,) output
         // cell_shifts: (M, 3) output
