@@ -50,35 +50,54 @@ void PairTorchMolNet::settings(int narg, char **arg)
   //   std::filesystem::remove_all("debug");
   // }
   // std::filesystem::create_directory("debug");
-
-  if (narg > 3)
+#pragma omp master
   {
-    error->all(FLERR, "Illegal pair_style command");
+    if (narg > 4)
+    {
+      error->all(FLERR, "Illegal pair_style command");
+    }
+    if (narg == 1)
+    {
+      std::string model_path = arg[0];
+      std::cout << "Load model from " << model_path << std::endl;
+      std::cout << "Device set to default value cuda." << std::endl;
+      torchmolnet_.init(model_path, "cuda");
+    }
+    else if (narg == 2)
+    {
+      std::string model_path = arg[0];
+      std::cout << "Load model from " << model_path << std::endl;
+      std::cout << "Device set input value " << arg[1] << std::endl;
+      torchmolnet_.init(model_path, arg[1]);
+    }
+    else if (narg == 3)
+    {
+      std::string model_path = arg[0];
+      std::cout << "Load model from " << model_path << std::endl;
+      std::cout << "Device set input value " << arg[1] << std::endl;
+      std::cout << "Cutoff set input value " << arg[2] << std::endl;
+      torchmolnet_.init(model_path, arg[1], std::stod(arg[2]));
+    }
+    else
+    {
+      std::string model_path = arg[0];
+      std::cout << "Load model from " << model_path << std::endl;
+      std::cout << "Device set input value " << arg[1] << std::endl;
+      std::cout << "Cutoff set input value " << arg[2] << std::endl;
+      std::string debug_option = arg[3];
+      if (debug_option == "debug")
+      {
+        torchmolnet_.init(model_path, arg[1], std::stod(arg[2]), true);
+      }
+      else
+      {
+        torchmolnet_.init(model_path, arg[1], std::stod(arg[2]));
+      }
+    }
+    cutoff_ = torchmolnet_.get_cutoff();
+    std::cout << "Cutoff set to " << std::setprecision(16) << cutoff_ << std::endl;
+    numb_types_ = torchmolnet_.get_z_max();
   }
-  if (narg == 1)
-  {
-    std::string model_path = arg[0];
-    std::cout << "Load model from " << model_path << std::endl;
-    std::cout << "Device set to default value cuda." << std::endl;
-    torchmolnet_.init(model_path, "cuda");
-  }
-  else if (narg == 2)
-  {
-    std::string model_path = arg[0];
-    std::cout << "Load model from " << model_path << std::endl;
-    std::cout << "Device set input value " << arg[1] << std::endl;
-    torchmolnet_.init(model_path, arg[1]);
-  }
-  else
-  {
-    std::string model_path = arg[0];
-    std::cout << "Load model from " << model_path << std::endl;
-    std::cout << "Device set input value " << arg[1] << std::endl;
-    torchmolnet_.init(model_path, arg[1], std::stod(arg[2]));
-  }
-  cutoff_ = torchmolnet_.get_cutoff();
-  std::cout << "Cutoff set to " << std::setprecision(16) << cutoff_ << std::endl;
-  numb_types_ = torchmolnet_.get_z_max();
 }
 
 void PairTorchMolNet::print_summary(const std::string pre) const
@@ -99,83 +118,85 @@ PairTorchMolNet::~PairTorchMolNet() {}
 
 void PairTorchMolNet::compute(int eflag, int vflag)
 {
-  int i, j, ii, jj, inum, jnum, itype, jtype;
-  double xtmp, ytmp, ztmp, xj, yj, zj, rij;
-  int *ilist, *jlist, *numneigh, **firstneigh;
-
-  ev_init(eflag, vflag);
-
-  double **x = atom->x;
-  double **f = atom->f;
-  int *type = atom->type;
-  int nlocal = atom->nlocal;
-  int nghost = atom->nghost;
-  int nall = nlocal + nghost;
-
-  inum = list->inum;
-  ilist = list->ilist;
-  numneigh = list->numneigh;
-  firstneigh = list->firstneigh;
-
-  numb_computes_++;
-  // debug_xyz_file_.open("debug/" + std::to_string(numb_computes_) + ".output", std::ofstream::out);
-
-  std::vector<double> dcoord(nlocal * 3, 0.0);
-  // get coord
-  for (int ii = 0; ii < nlocal; ++ii)
+#pragma omp master
   {
-    for (int dd = 0; dd < 3; ++dd)
+    int i, j, ii, jj, inum, jnum, itype, jtype;
+    double xtmp, ytmp, ztmp, xj, yj, zj, rij;
+    int *ilist, *jlist, *numneigh, **firstneigh;
+
+    ev_init(eflag, vflag);
+
+    double **x = atom->x;
+    double **f = atom->f;
+    int *type = atom->type;
+    int nlocal = atom->nlocal;
+    int nghost = atom->nghost;
+    int nall = nlocal + nghost;
+
+    inum = list->inum;
+    ilist = list->ilist;
+    numneigh = list->numneigh;
+    firstneigh = list->firstneigh;
+
+    numb_computes_++;
+    // debug_xyz_file_.open("debug/" + std::to_string(numb_computes_) + ".output", std::ofstream::out);
+
+    std::vector<double> dcoord(nlocal * 3, 0.0);
+    // get coord
+    for (int ii = 0; ii < nlocal; ++ii)
     {
-      dcoord[ii * 3 + dd] = x[ii][dd] - domain->boxlo[dd];
+      for (int dd = 0; dd < 3; ++dd)
+      {
+        dcoord[ii * 3 + dd] = x[ii][dd] - domain->boxlo[dd];
+      }
     }
-  }
 
-  // get type
-  int newton_pair = force->newton_pair;
-  std::vector<int> dtype(nlocal);
-  for (int ii = 0; ii < nlocal; ++ii)
-  {
-    dtype[ii] = type[ii];
-  }
+    // get type
+    int newton_pair = force->newton_pair;
+    std::vector<int> dtype(nlocal);
+    for (int ii = 0; ii < nlocal; ++ii)
+    {
+      dtype[ii] = type[ii];
+    }
 
-  // get box
-  std::vector<double> dbox(3, 0);
-  // dbox[0] = domain->h[0]; // xx
-  // dbox[4] = domain->h[1]; // yy
-  // dbox[8] = domain->h[2]; // zz
-  // dbox[7] = domain->h[3]; // zy
-  // dbox[6] = domain->h[4]; // zx
-  // dbox[3] = domain->h[5]; // yx
-  dbox[0] = domain->h[0];
-  dbox[1] = domain->h[1];
-  dbox[2] = domain->h[2];
+    // get box
+    std::vector<double> dbox(3, 0);
+    // dbox[0] = domain->h[0]; // xx
+    // dbox[4] = domain->h[1]; // yy
+    // dbox[8] = domain->h[2]; // zz
+    // dbox[7] = domain->h[3]; // zy
+    // dbox[6] = domain->h[4]; // zx
+    // dbox[3] = domain->h[5]; // yx
+    dbox[0] = domain->h[0];
+    dbox[1] = domain->h[1];
+    dbox[2] = domain->h[2];
 
-  // predict values.
-  double denergy = 0.0;
-  std::vector<double> dforces(nlocal * 3, 0.0);
-  std::vector<double> deatoms(nlocal, 0.0);
+    // predict values.
+    double denergy = 0.0;
+    std::vector<double> dforces(nlocal * 3, 0.0);
+    std::vector<double> deatoms(nlocal, 0.0);
 
-  // std::cout << "Computing...";
-  // std::cout << "inum:" << inum << "to do...\n";
+    // std::cout << "Computing...";
+    // std::cout << "inum:" << inum << "to do...\n";
 
-  // double atom_wise_denergy = 0.0;
-  // double sum_of_atom_wise_deatoms = 0.0;
-  // std::vector<double> vector_of_atom_wise_deatoms(nlocal, 0.0);
-  // std::vector<int> atom_wise_dtype(nall, -1);
-  // std::vector<double> atom_wise_dcoord(nall * 3, 0.0);
-  // std::vector<double> atom_wise_dforces(nall * 3, 0.0);
-  // std::vector<double> atom_wise_deatoms(nall, 0.0);
+    // double atom_wise_denergy = 0.0;
+    // double sum_of_atom_wise_deatoms = 0.0;
+    // std::vector<double> vector_of_atom_wise_deatoms(nlocal, 0.0);
+    // std::vector<int> atom_wise_dtype(nall, -1);
+    // std::vector<double> atom_wise_dcoord(nall * 3, 0.0);
+    // std::vector<double> atom_wise_dforces(nall * 3, 0.0);
+    // std::vector<double> atom_wise_deatoms(nall, 0.0);
 
-  // for (ii = 0; ii < inum; ii++)
-  // {
-  //   i = ilist[ii];
-  //   xtmp = x[i][0];
-  //   ytmp = x[i][1];
-  //   ztmp = x[i][2];
-  //   itype = type[i];
-  //   jlist = firstneigh[i];
-  //   jnum = numneigh[i];
-  //   std::cout << i;
+    // for (ii = 0; ii < inum; ii++)
+    // {
+    //   i = ilist[ii];
+    //   xtmp = x[i][0];
+    //   ytmp = x[i][1];
+    //   ztmp = x[i][2];
+    //   itype = type[i];
+    //   jlist = firstneigh[i];
+    //   jnum = numneigh[i];
+    //   std::cout << i;
     // debug_xyz_file_ << jnum << std::endl;
 
     // std::cout << "i:" << i << " jnum:" << jnum << std::endl;
@@ -184,44 +205,45 @@ void PairTorchMolNet::compute(int eflag, int vflag)
     // debug_xyz_file_ << itype << " " << xtmp << " " << ytmp << " " << ztmp << "#"
     //                 << " " << i + 1 << " " << std::endl;
 
-  // full calculation
-  torchmolnet_.predict(denergy, dforces, dcoord, dtype, dbox, nlocal - 1, deatoms);
-  // debug_xyz_file_ << "sum of atom-wise calculation energy: \n"
-  //                 << sum_of_atom_wise_deatoms << std::endl;
-  // debug_xyz_file_ << "total calculation energy: \n"
-  //                 << denergy << std::endl;
-  // debug_xyz_file_ << "total calculation atom-wise energy \t total calculation energy of each atom: \n";
+    // full calculation
+    torchmolnet_.predict(denergy, dforces, dcoord, dtype, dbox, nlocal - 1, deatoms);
+    // debug_xyz_file_ << "sum of atom-wise calculation energy: \n"
+    //                 << sum_of_atom_wise_deatoms << std::endl;
+    // debug_xyz_file_ << "total calculation energy: \n"
+    //                 << denergy << std::endl;
+    // debug_xyz_file_ << "total calculation atom-wise energy \t total calculation energy of each atom: \n";
 
-  // for (int ii = 0; ii < nlocal; ii++)
-  // {
-  //   debug_xyz_file_ << vector_of_atom_wise_deatoms[ii] << "\t" << deatoms[ii] << std::endl;
-  // }
+    // for (int ii = 0; ii < nlocal; ii++)
+    // {
+    //   debug_xyz_file_ << vector_of_atom_wise_deatoms[ii] << "\t" << deatoms[ii] << std::endl;
+    // }
 
-  // debug_xyz_file_ << "total calculation force: \n"
-  //                 << dforces << std::endl;
+    // debug_xyz_file_ << "total calculation force: \n"
+    //                 << dforces << std::endl;
 
-  // get force
-  for (int ii = 0; ii < nlocal; ++ii)
-  {
-    for (int dd = 0; dd < 3; ++dd)
+    // get force
+    for (int ii = 0; ii < nlocal; ++ii)
     {
-      f[ii][dd] = dforces[ii * 3 + dd];
+      for (int dd = 0; dd < 3; ++dd)
+      {
+        f[ii][dd] = dforces[ii * 3 + dd];
+      }
     }
-  }
-  // return to lammps
-  if (eflag_global)
-    eng_vdwl += denergy;
-  if (eflag_atom)
-  {
-    for (int ii = 0; ii < nall; ii++)
-      eatom[ii] += deatoms[ii];
-  }
+    // return to lammps
+    if (eflag_global)
+      eng_vdwl += denergy;
+    if (eflag_atom)
+    {
+      for (int ii = 0; ii < nall; ii++)
+        eatom[ii] += deatoms[ii];
+    }
 
-  if (vflag_fdotr)
-    virial_fdotr_compute();
-  // std::cout << std::endl;
-  // debug_xyz_file_.close();
-  // std::cout << "Computing end." << std::endl;
+    if (vflag_fdotr)
+      virial_fdotr_compute();
+    // std::cout << std::endl;
+    // debug_xyz_file_.close();
+    // std::cout << "Computing end." << std::endl;
+  }
 }
 
 void PairTorchMolNet::coeff(int narg, char **arg)

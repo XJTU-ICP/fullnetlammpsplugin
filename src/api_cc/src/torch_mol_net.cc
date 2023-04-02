@@ -146,7 +146,15 @@ namespace torchmolnet
 
         try
         {
+            if (option_debug_)
+            {
+                std::cout << "Running on model..." << std::endl;
+            }
             auto out = m_model_.forward(inputs).toTuple();
+            if (option_debug_)
+            {
+                std::cout << "Model prediction done." << std::endl;
+            }
             denergy = out->elements()[0].toTensor().item<double>();
             // transfer force matrix to cpu and vector
             torch::Tensor force_tensor = out->elements()[1].toTensor().to(torch::kCPU).to(torch::kDouble).flatten();
