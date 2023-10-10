@@ -23,8 +23,24 @@ cmake -C ../cmake/presets/most.cmake -C ../cmake/presets/oneapi.cmake -D CMAKE_I
 
 - cuda nvcc
 - complier
-- mpi
-- mkl
+- mpi (optional)
+- mkl (optional)
+
+We recommend using conda or mamba to install the nvcc/cuda environment
+
+And compile lammps with:
+
+(ref to https://github.com/deepmd-kit-recipes/lammps-feedstock/blob/master/recipe/build.sh)
+
+```shell
+ARGS="-D PKG_ASPHERE=ON -DPKG_BODY=ON -D PKG_CLASS2=ON -D PKG_COLLOID=ON -D PKG_COMPRESS=OFF -D PKG_CORESHELL=ON -D PKG_DIPOLE=ON -D PKG_EXTRA-COMPUTE=ON -D PKG_EXTRA-DUMP=ON -D PKG_EXTRA-FIX=ON -D PKG_EXTRA-MOLECULE=ON -D PKG_EXTRA-PAIR=ON -D PKG_GRANULAR=ON -D PKG_KSPACE=ON -D PKG_MANYBODY=ON -D PKG_MC=ON -D PKG_MEAM=ON -D PKG_MISC=ON -D PKG_MOLECULE=ON -D PKG_PERI=ON -D PKG_REPLICA=ON -D PKG_RIGID=ON -D PKG_SHOCK=ON -D PKG_SNAP=ON -D PKG_SRD=ON -D PKG_OPT=ON -D PKG_KIM=OFF -D PKG_GPU=OFF -D PKG_KOKKOS=OFF -D PKG_MPIIO=OFF -D PKG_MSCG=OFF -D PKG_LATTE=OFF -D PKG_PHONON=ON -D PKG_REAXFF=ON -D WITH_GZIP=ON -D PKG_COLVARS=ON -D PKG_PLUMED=yes -D PKG_FEP=ON -D PLUMED_MODE=runtime -D PKG_QTB=ON -D PKG_PLUGIN=ON -D PKG_H5MD=ON"
+cmake -D CMAKE_BUILD_TYPE=Release -D BUILD_LIB=ON -D BUILD_SHARED_LIBS=ON -D LAMMPS_INSTALL_RPATH=ON -DCMAKE_INSTALL_LIBDIR=lib $ARGS -D FFT=FFTW3 -D CMAKE_INSTALL_PREFIX=【install path】 ../cmake
+make #-j${NUM_CPUS}
+make install
+```
+Sometimes you may not always need fftw3, so you can delete -D FFT=FFTW3. Or install it following https://docs.lammps.org/Build_settings.html#fft-library.
+
+To be briefly, we always need the BUILD_LIB=ON, PKG_PLUGIN=ON, see https://docs.lammps.org/Build_package.html for details from lammps.
 
 ## make and install
 
