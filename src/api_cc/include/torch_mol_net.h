@@ -45,17 +45,27 @@ namespace torchmolnet
          *
          * @param[in] dcoord The coordinates of the molecule.
          * @param[in] datype The atom types of the molecule.
-         * @param[in] dbox The cell of the molecule. (not used)
-         * @param[out] denergy The energy of the molecule.
-         * @param[out] dforces The forces of each atom in the molecule.
+         * @param[in] dbox The box of the molecule.
+         * @param[in] idx_i The indices of the first atoms.
+         * @param[in] idx_j The indices of the second atoms.
+         * @param[in] cell_shifts The cell shifts to use.
+         * @param[out] dstress The stress to use.
+         * @param[out] denergy The predicted energy.
+         * @param[out] dforces The predicted forces.
+         * @param[out] deatoms The predicted energy of each atom.
          */
-        void predict(double &denergy,
-                     std::vector<double> &dforces,
-                     const std::vector<double> &dcoord,
-                     const std::vector<int> &datype,
-                     const std::vector<double> &dbox,
-                     const long nghost,
-                     std::vector<double> &deatoms);
+        void predict(
+            double &denergy,
+            std::vector<double> &dforces,
+            std::vector<double> &dstress,
+            std::vector<double> &deatoms,
+            const std::vector<double> &dcoord,
+            const std::vector<double> &dbox,
+            const std::vector<int> &datype,
+            const std::vector<long> &idx_i,
+            const std::vector<long> &idx_j,
+            const std::vector<double> &cell_shifts
+        );
 
         /**
          * @brief Pring the model summary.

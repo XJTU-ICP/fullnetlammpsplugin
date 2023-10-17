@@ -25,6 +25,9 @@ namespace torchmolnet
         {
             file_debug_.open("debuginfo.txt", std::ofstream::out);
             file_debug_.close();
+            torch::jit::getProfilingMode()=false;
+            torch::jit::getExecutorMode()=false;
+            torch::jit::setGraphExecutorOptimize(false);
         }
 
         try
@@ -67,20 +70,20 @@ namespace torchmolnet
         }
     }
 
-    void TorchMolNet::predict(double &denergy,
-                              std::vector<double> &dforces,
-                              const std::vector<double> &dcoord,
-                              const std::vector<int> &datype,
-                              const std::vector<double> &dbox,
-                              const long nneighbor,
-                              std::vector<double> &deatoms)
-    {
+    void TorchMolNet::predict(
+        double &denergy,
+        std::vector<double> &dforces,
+        std::vector<double> &dstress,
+        std::vector<double> &deatoms,
+        const std::vector<double> &dcoord,
+        const std::vector<double> &dbox,
+        const std::vector<int> &datype,
+        const std::vector<long> &idx_i,
+        const std::vector<long> &idx_j,
+        const std::vector<double> &cell_shifts
+    ){
         // Create a tensor from the input vector.
-        // torch::Tensor tensor_dcoord = torch::tensor(dcoord_, torch::kDouble).view({(int)dcoord_.size() / 3, 3});
-        // torch::Tensor tensor_datype = torch::tensor(datype_, torch::kLong);
-        // torch::Tensor tensor_dbox = torch::tensor(dbox, torch::kDouble).view({3, 3});
-        // torch::Tensor tensor_nghost = torch::tensor(nghost, torch::kLong).view({1});
-        long system_size = nneighbor + 1;
+        long system_size = dcoord.size() / 3;
 
         // TODO: api for charge and mag_moment.
         double total_charge[] = {0.0};
@@ -89,30 +92,14 @@ namespace torchmolnet
         torch::jit::IValue total_charge_tensor = torch::from_blob(total_charge, {1}, torch::kDouble).to(m_device_);
         torch::jit::IValue mag_moment_tensor = torch::from_blob(mag_moment, {1}, torch::kDouble).to(m_device_);
 
-        // std::vector<double> coords_inner(system_size * 3, 0.0);
-        // std::vector<double> atomic_number_inner(system_size, -1.0);
-        // for (long i = 0; i < system_size; i++)
-        // {
-        //     coords_inner[i * 3 + 0] = dcoord[i * 3 + 0];
-        //     coords_inner[i * 3 + 1] = dcoord[i * 3 + 1];
-        //     coords_inner[i * 3 + 2] = dcoord[i * 3 + 2];
-        //     atomic_number_inner[i] = datype[i];
-        // }
-
         torch::jit::IValue coords_tensor = torch::tensor(dcoord, torch::TensorOptions().dtype(torch::kDouble).requires_grad(true)).view({(int)system_size, 3}).to(m_device_);
         torch::jit::IValue atomic_number_tensor = torch::tensor(datype, torch::kLong).to(m_device_);
-        torch::jit::IValue dbox_tensor = torch::tensor(dbox, torch::TensorOptions().dtype(torch::kDouble).device(m_device_)).diag().view({1, 3, 3});
-        // TODO: more efficient way to generate idx.
-        torch::Tensor tensor_idx_i;
-        torch::Tensor tensor_idx_j;
-        torch::Tensor tensor_cell_shifts;
-        get_neighbors(
-            coords_tensor.toTensor(),
-            torch::tensor(dbox, torch::kDouble).view({3}).to(m_device_),
-            cutoff_,
-            tensor_idx_i,
-            tensor_idx_j,
-            tensor_cell_shifts);
+        torch::jit::IValue dbox_tensor = torch::tensor(dbox, torch::TensorOptions().dtype(torch::kDouble).device(m_device_)).view({1, 3, 3});
+
+        // generate idx tensor
+        torch::Tensor tensor_idx_i = torch::tensor(idx_i, torch::kLong).to(m_device_);
+        torch::Tensor tensor_idx_j = torch::tensor(idx_j, torch::kLong).to(m_device_);
+        torch::Tensor tensor_cell_shifts = torch::tensor(cell_shifts, torch::kDouble).view({-1, 3}).to(m_device_);
 
         std::vector<torch::jit::IValue> inputs;
 
@@ -138,8 +125,14 @@ namespace torchmolnet
                         << mag_moment_tensor.toTensor() << std::endl;
             file_debug_ << "coords_tensor: \n"
                         << coords_tensor.toTensor().reshape({-1, 3}) << std::endl;
+            file_debug_ << "tensor_idx_i: \n"
+                        << tensor_idx_i << std::endl;
+            file_debug_ << "tensor_idx_j: \n"
+                        << tensor_idx_j << std::endl;
             file_debug_ << "dbox_tensor: \n"
                         << dbox_tensor.toTensor() << std::endl;
+            file_debug_ << "tensor_cell_shifts: \n"
+                        << tensor_cell_shifts << std::endl;
             file_debug_ << "###----INPUT----###" << std::endl;
             file_debug_.close();
         }

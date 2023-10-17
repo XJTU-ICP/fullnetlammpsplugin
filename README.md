@@ -6,6 +6,8 @@ Please set the following environment variables using -D option of cmake:
  - LAMMPS_BINARY_ROOT: path to compiled LAMMPS and its library(with subpath `/lib/cmake/LAMMPS`)
  - LAMMPS_SOURCE_DIR: path to LAMMPS source code(with subpath `/cmake/Modules/LAMMPSUtils.cmake`) 
 
+**All path should be absolute path.**
+
 And if you use CUDA version of torch, make sure your environment has CUDA environment variables.
 
 You can also set cmake option "-DCMAKE_INSTALL_PREFIX=<path>" to set install target.
@@ -26,7 +28,7 @@ cmake -C ../cmake/presets/most.cmake -C ../cmake/presets/oneapi.cmake -D CMAKE_I
 - mpi (optional)
 - mkl (optional)
 
-We recommend using conda or mamba to install the nvcc/cuda environment
+We recommend using conda or mamba to install the nvcc/cuda environment, you may need to install using `mamba install cuda=11.8 cuda-nvcc=11.8 cudatoolkit=11.8 -c nvidia`, and make sure using the same version for cudart with libtorch. And also for your pytorch version (11.8).
 
 And compile lammps with:
 
