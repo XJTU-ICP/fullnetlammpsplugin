@@ -1,4 +1,5 @@
 #include "torch_mol_net.h"
+#include <torch/torch.h>
 
 namespace torchmolnet
 {
@@ -92,14 +93,14 @@ namespace torchmolnet
         torch::jit::IValue total_charge_tensor = torch::from_blob(total_charge, {1}, torch::kDouble).to(m_device_);
         torch::jit::IValue mag_moment_tensor = torch::from_blob(mag_moment, {1}, torch::kDouble).to(m_device_);
 
-        torch::jit::IValue coords_tensor = torch::tensor(dcoord, torch::TensorOptions().dtype(torch::kDouble).requires_grad(true)).view({(int)system_size, 3}).to(m_device_);
-        torch::jit::IValue atomic_number_tensor = torch::tensor(datype, torch::kLong).to(m_device_);
-        torch::jit::IValue dbox_tensor = torch::tensor(dbox, torch::TensorOptions().dtype(torch::kDouble).device(m_device_)).view({1, 3, 3});
+        torch::jit::IValue coords_tensor = torch::tensor(dcoord, torch::TensorOptions().dtype(torch::kDouble).requires_grad(true).device(m_device_)).view({(int)system_size, 3});
+        torch::jit::IValue atomic_number_tensor = torch::tensor(datype, torch::TensorOptions().dtype(torch::kLong).device(m_device_));
+        torch::Tensor dbox_tensor = torch::tensor(dbox, torch::TensorOptions().dtype(torch::kDouble).requires_grad(true).device(m_device_)).view({1, 3, 3});
 
         // generate idx tensor
-        torch::Tensor tensor_idx_i = torch::tensor(idx_i, torch::kLong).to(m_device_);
-        torch::Tensor tensor_idx_j = torch::tensor(idx_j, torch::kLong).to(m_device_);
-        torch::Tensor tensor_cell_shifts = torch::tensor(cell_shifts, torch::kDouble).view({-1, 3}).to(m_device_);
+        torch::Tensor tensor_idx_i = torch::tensor(idx_i, torch::TensorOptions().dtype(torch::kLong).device(m_device_));
+        torch::Tensor tensor_idx_j = torch::tensor(idx_j, torch::TensorOptions().dtype(torch::kLong).device(m_device_));
+        torch::Tensor tensor_cell_shifts = torch::tensor(cell_shifts, torch::TensorOptions().dtype(torch::kDouble).device(m_device_)).view({-1, 3});
 
         std::vector<torch::jit::IValue> inputs;
 
@@ -130,7 +131,7 @@ namespace torchmolnet
             file_debug_ << "tensor_idx_j: \n"
                         << tensor_idx_j << std::endl;
             file_debug_ << "dbox_tensor: \n"
-                        << dbox_tensor.toTensor() << std::endl;
+                        << dbox_tensor << std::endl;
             file_debug_ << "tensor_cell_shifts: \n"
                         << tensor_cell_shifts << std::endl;
             file_debug_ << "###----INPUT----###" << std::endl;
@@ -155,6 +156,9 @@ namespace torchmolnet
 
             dforces = std::vector<double>(force_tensor.data_ptr<double>(), force_tensor.data_ptr<double>() + force_tensor.numel());
             deatoms = std::vector<double>(energy_wise_tensor.data_ptr<double>(), energy_wise_tensor.data_ptr<double>() + energy_wise_tensor.numel());
+            auto grad_output = torch::ones_like(out->elements()[0].toTensor());
+            auto virial = torch::autograd::grad({out->elements()[0].toTensor()}, {dbox_tensor}, {grad_output}, true)[0].to(torch::kCPU).to(torch::kDouble).flatten();
+            std::cout << "Model E/box:" << virial << std::endl;
             if (option_debug_)
             {
                 file_debug_.open("debuginfo.txt", std::ofstream::app);

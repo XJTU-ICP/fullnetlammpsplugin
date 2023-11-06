@@ -35,6 +35,7 @@ PairTorchMolNet::PairTorchMolNet(LAMMPS *lmp)
 {
   restartinfo = 0;
   manybody_flag = 1;
+  no_virial_fdotr_compute = 1;
   if (lmp->citeme)
     lmp->citeme->add(cite_torch_mol_net_package);
   if (strcmp(update->unit_style, "metal") != 0)
@@ -183,7 +184,7 @@ void PairTorchMolNet::compute(int eflag, int vflag)
     int neigh_flag = 0;
     torch::Tensor cell_shift_tmp;
     std::vector<int> tag2i(inum);
-#pragma omp for
+    #pragma omp for
     for (ii = 0; ii < inum; ii++){
       i = ilist[ii];
       itag = tag[i];
@@ -281,6 +282,12 @@ void PairTorchMolNet::compute(int eflag, int vflag)
       virial[4] += f[i][2]*x[i][0];
       virial[5] += f[i][2]*x[i][1];
     }
+    std::cout<<"Virial:"<<std::endl;
+    for (ii=0; ii < 6; ii++){
+      std::cout<<virial[ii]<<" ";
+    }
+    std::cout<<std::endl;
+    vflag_fdotr = 0;
     // std::vector<double> virial_compare(6,0.0);
     // for (int i =0; i < nlocal; i++){
     //   for (int j = 0; j < 3; j++){
