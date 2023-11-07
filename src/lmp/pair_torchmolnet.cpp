@@ -150,11 +150,6 @@ void PairTorchMolNet::compute(int eflag, int vflag)
     // get type
     int newton_pair = force->newton_pair;
     std::vector<int> dtype(nlocal);
-    #pragma omp for
-    for (int ii = 0; ii < nlocal; ++ii)
-    {
-      dtype[ii] = type[ii];
-    }
 
     // get box
     std::vector<double> dbox(9,0.0);
@@ -182,15 +177,22 @@ void PairTorchMolNet::compute(int eflag, int vflag)
     std::vector<double> cell_shifts(nneibors * 3, -99);
     int neigh_flag = 0;
     torch::Tensor cell_shift_tmp;
-    std::vector<int> tag2i(inum);
-#pragma omp for
+    std::vector<int> tag2i(inum, -99);
+    std::vector<int> tag2all(nall, -99);
+    #pragma omp for
     for (ii = 0; ii < inum; ii++){
       i = ilist[ii];
       itag = tag[i];
       dcoord[(itag-1)*3+0] = x[i][0];
       dcoord[(itag-1)*3+1] = x[i][1];
       dcoord[(itag-1)*3+2] = x[i][2];
-      tag2i[itag-1] = i;
+      dtype[itag-1] = type[i];
+    }
+    #pragma omp for
+    for (ii = 0; ii < inum; ii++){
+      i = ilist[ii];
+      itag = tag[i];
+      tag2i[itag-1] = ii;
     }
     
     #pragma omp master
@@ -255,32 +257,47 @@ void PairTorchMolNet::compute(int eflag, int vflag)
       f[i][0] = dforces[itag*3+0];
       f[i][1] = dforces[itag*3+1];
       f[i][2] = dforces[itag*3+2];
+      // std::cout<<"atom i=" << i << " force set to" << f[i][0] << " " << f[i][1] << " " << f[i][2] << std::endl;
+    }
+    // get force for ghost atoms
+    #pragma omp for
+    for (i = inum; i < inum + nghost; i++)
+    {
+      itag = tag[i];
+      f[i][0] = dforces[(itag-1)*3+0];
+      f[i][1] = dforces[(itag-1)*3+1];
+      f[i][2] = dforces[(itag-1)*3+2];
+      // std::cout<<"ghost atom i=" << i << " force set to" << f[i][0] << " " << f[i][1] << " " << f[i][2] << std::endl;
     }
     // return to lammps
     if (eflag_global)
       eng_vdwl += denergy;
     if (eflag_atom)
     {
-      for (int ii = 0; ii < nall; ii++)
-        eatom[ii] += deatoms[ii];
+      #pragma omp for
+      for (itag = 0; itag < inum; itag++)
+      {
+        i = tag2i[itag];
+        eatom[i] += deatoms[itag];
+      }
     }
 
     // // always compute virial
-    // virial_fdotr_compute();
+    virial_fdotr_compute();
     // std::cout<<"Virial:"<<std::endl;
     // for (ii=0; ii < 6; ii++){
     //   std::cout<<virial[ii]<<" ";
     // }
     // std::cout<<std::endl;
-    #pragma omp for
-    for (int i = 0; i < nlocal; i++) {
-      virial[0] += f[i][0]*x[i][0];
-      virial[1] += f[i][1]*x[i][1];
-      virial[2] += f[i][2]*x[i][2];
-      virial[3] += f[i][1]*x[i][0];
-      virial[4] += f[i][2]*x[i][0];
-      virial[5] += f[i][2]*x[i][1];
-    }
+    // #pragma omp for
+    // for (int i = 0; i < nlocal; i++) {
+    //   virial[0] += f[i][0]*x[i][0];
+    //   virial[1] += f[i][1]*x[i][1];
+    //   virial[2] += f[i][2]*x[i][2];
+    //   virial[3] += f[i][1]*x[i][0];
+    //   virial[4] += f[i][2]*x[i][0];
+    //   virial[5] += f[i][2]*x[i][1];
+    // }
     // std::vector<double> virial_compare(6,0.0);
     // for (int i =0; i < nlocal; i++){
     //   for (int j = 0; j < 3; j++){
