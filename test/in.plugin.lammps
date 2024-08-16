@@ -3,26 +3,41 @@
 units           metal
 boundary        p p p
 atom_style      atomic
+atom_modify map yes
 
-neighbor        2.0 bin
-neigh_modify    every 10 delay 0 check no
+neighbor            0.3 bin
+neigh_modify        delay 0
+newton              off
 
 read_data	water.lmp
-mass 		1 16
-mass		2 2
+mass * 1
+mass 		1 1
+mass 		8 15.9994
 
-# load the libtorchmolnet plugin
-plugin load libtorchmolnet_lmp.so
+pair_style torchmolnet spookynet_model_traced_1.11.0.pt cuda 6.0
+pair_coeff * *
 
-pair_style	torchmolnet spookynet_model_traced_1.11.0.pt
-pair_coeff  * *	
+thermo                10
+thermo_modify       lost ignore
+thermo_style    custom step ke pe etotal enthalpy temp press vol density
 
-velocity        all create 330.0 23456789
+minimize        1.0e-10 1.0e-10 6000 6000
 
-fix             1 all nvt temp 330.0 330.0 0.5
-timestep        0.0005
-thermo_style    custom step pe ke etotal temp press vol
-thermo          100
-dump		1 all custom 100 water.dump id type x y z 
+# ----------------- thermo
+velocity all create 300 4928459 dist gaussian units box mom yes rot no
+velocity        all zero linear
 
-run             1000
+fix                    1 all nvt temp 300 300 $(100.0*dt)
+dump                1 all custom 10 nvt.lammpstrj id type x y z fx fy fz
+run                 1000
+unfix                1
+undump                1
+reset_timestep        0
+
+# ----------------- thermo1
+fix                    1 all npt temp 300 300 $(100.0*dt) aniso 1.0 1.0 $(1000.0*dt)
+dump                1 all custom 10 npt.lammpstrj id type x y z fx fy fz
+run                 1000
+unfix                1
+undump                1
+#

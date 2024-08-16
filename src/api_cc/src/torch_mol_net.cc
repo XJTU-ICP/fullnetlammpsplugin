@@ -25,19 +25,9 @@ namespace torchmolnet
         {
             file_debug_.open("debuginfo.txt", std::ofstream::out);
             file_debug_.close();
-            torch::jit::getProfilingMode()=false;
-            torch::jit::getExecutorMode()=false;
+            torch::jit::getProfilingMode() = false;
+            torch::jit::getExecutorMode() = false;
             torch::jit::setGraphExecutorOptimize(false);
-        }
-
-        try
-        {
-            m_model_ = torch::jit::load(model_path);
-        }
-        catch (const c10::Error &e)
-        {
-            std::cerr << "Error loading the model from file: " << model_path << std::endl;
-            throw std::runtime_error(e.what());
         }
         try
         {
@@ -45,7 +35,6 @@ namespace torchmolnet
             {
                 std::cout << "Using device gpu." << std::endl;
                 m_device_ = torch::Device(torch::kCUDA);
-                m_model_.to(m_device_);
                 inited_ = true;
             }
             else if (device == "cpu")
@@ -53,7 +42,6 @@ namespace torchmolnet
                 std::cout << "Using device cpu." << std::endl;
 
                 m_device_ = torch::Device(torch::kCPU);
-                m_model_.to(m_device_);
                 inited_ = true;
             }
             else
@@ -68,6 +56,18 @@ namespace torchmolnet
             std::cerr << "Error initializing the model on device: " << device << std::endl;
             throw std::runtime_error(e.what());
         }
+
+        try
+        {
+
+            m_model_ = torch::jit::load(model_path, m_device_);
+        }
+        catch (const c10::Error &e)
+        {
+            std::cerr << "Error loading the model from file: " << model_path << std::endl;
+            throw std::runtime_error(e.what());
+        }
+        std::cout << "Loading model from " << model_path << " done." << std::endl;
     }
 
     void TorchMolNet::predict(
@@ -80,8 +80,8 @@ namespace torchmolnet
         const std::vector<int> &datype,
         const std::vector<long> &idx_i,
         const std::vector<long> &idx_j,
-        const std::vector<double> &cell_shifts
-    ){
+        const std::vector<double> &cell_shifts)
+    {
         // Create a tensor from the input vector.
         long system_size = dcoord.size() / 3;
 

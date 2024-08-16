@@ -30,6 +30,43 @@ static const char cite_torch_mol_net_package[] =
     "  year = 2022,\n"
     "}\n\n";
 
+// 计算3x3矩阵的逆
+bool inverseMatrix(const std::vector<double> &src, torch::Tensor &dest)
+{
+  // 由于是3x3矩阵，我们首先将其转换为二维数组以便于计算
+  double mat[3][3] = {
+      {src[0], src[1], src[2]},
+      {src[3], src[4], src[5]},
+      {src[6], src[7], src[8]}};
+
+  double det = mat[0][0] * (mat[1][1] * mat[2][2] - mat[1][2] * mat[2][1]) - mat[0][1] * (mat[1][0] * mat[2][2] - mat[1][2] * mat[2][0]) + mat[0][2] * (mat[1][0] * mat[2][1] - mat[1][1] * mat[2][0]);
+
+  if (det == 0.0)
+  {
+    return false; // 矩阵不可逆
+  }
+
+  // 计算逆矩阵
+  double invMat[3][3] = {
+      {(mat[1][1] * mat[2][2] - mat[1][2] * mat[2][1]) / det, (mat[0][2] * mat[2][1] - mat[0][1] * mat[2][2]) / det, (mat[0][1] * mat[1][2] - mat[0][2] * mat[1][1]) / det},
+      {(mat[1][2] * mat[2][0] - mat[1][0] * mat[2][2]) / det, (mat[0][0] * mat[2][2] - mat[0][2] * mat[2][0]) / det, (mat[0][2] * mat[1][0] - mat[0][0] * mat[1][2]) / det},
+      {(mat[1][0] * mat[2][1] - mat[1][1] * mat[2][0]) / det, (mat[0][1] * mat[2][0] - mat[0][0] * mat[2][1]) / det, (mat[0][0] * mat[1][1] - mat[0][1] * mat[1][0]) / det}};
+
+  // 将逆矩阵转换为一维数组
+  std::vector<double> flatInvMat(9);
+  for (int i = 0; i < 3; ++i)
+  {
+    for (int j = 0; j < 3; ++j)
+    {
+      flatInvMat[i * 3 + j] = invMat[i][j];
+    }
+  }
+  // 创建一个torch::Tensor对象，并从一维数组复制数据
+  dest = torch::tensor(flatInvMat, torch::kDouble).view({3, 3});
+
+  return true;
+}
+
 PairTorchMolNet::PairTorchMolNet(LAMMPS *lmp)
     : Pair(lmp)
 {
@@ -46,6 +83,10 @@ PairTorchMolNet::PairTorchMolNet(LAMMPS *lmp)
 
 void PairTorchMolNet::settings(int narg, char **arg)
 {
+  int rank, size;
+  MPI_Init(&argc, &argv);
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &size);
   numb_computes_ = 0;
   // if (std::filesystem::exists("debug"))
   // {
@@ -54,6 +95,8 @@ void PairTorchMolNet::settings(int narg, char **arg)
   // std::filesystem::create_directory("debug");
 #pragma omp master
   {
+    int thread_num = omp_get_thread_num();
+    if (rank == 0 && thread_num == 0) {
     if (narg > 4)
     {
       error->all(FLERR, "Illegal pair_style command");
@@ -61,21 +104,21 @@ void PairTorchMolNet::settings(int narg, char **arg)
     if (narg == 1)
     {
       std::string model_path = arg[0];
-      std::cout << "Load model from " << model_path << std::endl;
+      std::cout << "Loading model from " << model_path << std::endl;
       std::cout << "Device set to default value cuda." << std::endl;
       torchmolnet_.init(model_path, "cuda");
     }
     else if (narg == 2)
     {
       std::string model_path = arg[0];
-      std::cout << "Load model from " << model_path << std::endl;
+      std::cout << "Loading model from " << model_path << std::endl;
       std::cout << "Device set input value " << arg[1] << std::endl;
       torchmolnet_.init(model_path, arg[1]);
     }
     else if (narg == 3)
     {
       std::string model_path = arg[0];
-      std::cout << "Load model from " << model_path << std::endl;
+      std::cout << "Loading model from " << model_path << std::endl;
       std::cout << "Device set input value " << arg[1] << std::endl;
       std::cout << "Cutoff set input value " << arg[2] << std::endl;
       torchmolnet_.init(model_path, arg[1], std::stod(arg[2]));
@@ -83,7 +126,7 @@ void PairTorchMolNet::settings(int narg, char **arg)
     else
     {
       std::string model_path = arg[0];
-      std::cout << "Load model from " << model_path << std::endl;
+      std::cout << "Loading model from " << model_path << std::endl;
       std::cout << "Device set input value " << arg[1] << std::endl;
       std::cout << "Cutoff set input value " << arg[2] << std::endl;
       std::string debug_option = arg[3];
@@ -99,7 +142,9 @@ void PairTorchMolNet::settings(int narg, char **arg)
     cutoff_ = torchmolnet_.get_cutoff();
     std::cout << "Cutoff set to " << std::setprecision(16) << cutoff_ << std::endl;
     numb_types_ = torchmolnet_.get_z_max();
+    }
   }
+  MPI_Finalize();
 }
 
 void PairTorchMolNet::print_summary(const std::string pre) const
@@ -120,7 +165,7 @@ PairTorchMolNet::~PairTorchMolNet() {}
 
 void PairTorchMolNet::compute(int eflag, int vflag)
 {
-// #pragma omp master
+  // #pragma omp master
   {
     int i, j, ii, jj, inum, jnum, itype, jtype;
     double xtmp, ytmp, ztmp, xj, yj, zj, rij;
@@ -146,29 +191,33 @@ void PairTorchMolNet::compute(int eflag, int vflag)
 
     std::vector<double> dcoord(nlocal * 3, 0.0);
 
-
     // get type
     int newton_pair = force->newton_pair;
     std::vector<int> dtype(nlocal);
 
     // get box
-    std::vector<double> dbox(9,0.0);
-    dbox[0] = domain->boxhi[0] - domain->boxlo[0];
-    
-    dbox[3] = domain->xy;
-    dbox[4] = domain->boxhi[1] - domain->boxlo[1];
-
-    dbox[6] = domain->xz;
-    dbox[7] = domain->yz;
-    dbox[8] = domain->boxhi[2] - domain->boxlo[2];
-
+    std::vector<double> dbox(9, 0.0);
+    dbox[0] = domain->h[0];
+    dbox[1] = 0.0;
+    dbox[2] = 0.0;
+    dbox[3] = domain->h[5];
+    dbox[4] = domain->h[1];
+    dbox[5] = 0.0;
+    dbox[6] = domain->h[4];
+    dbox[7] = domain->h[3];
+    dbox[8] = domain->h[2];
 
     // predict values.
     double denergy = 0.0;
     std::vector<double> dforces(nlocal * 3, 0.0);
     std::vector<double> deatoms(nlocal, 0.0);
     std::vector<double> dstress(6, 0.0);
-    torch::Tensor cell_inv = torch::tensor(dbox, torch::kDouble).view({3,3}).inverse().transpose(0,1);
+    torch::Tensor cell_inv = torch::tensor(dbox, torch::kDouble).view({3, 3}).inverse().transpose(0, 1);
+
+    // torch::Tensor cell_inv;
+    // inverseMatrix(dbox, cell_inv);
+    // std::cout << "START cell_inv" << dbox << std::endl;
+    // cell_inv = cell_inv.transpose(0, 1);
 
     // calculate the number of neighbors under the cutoff
     int nneibors = std::accumulate(numneigh, numneigh + nlocal, 0);
@@ -179,23 +228,25 @@ void PairTorchMolNet::compute(int eflag, int vflag)
     torch::Tensor cell_shift_tmp;
     std::vector<int> tag2i(inum, -99);
     std::vector<int> tag2all(nall, -99);
-    #pragma omp for
-    for (ii = 0; ii < inum; ii++){
+#pragma omp for
+    for (ii = 0; ii < inum; ii++)
+    {
       i = ilist[ii];
       itag = tag[i];
-      dcoord[(itag-1)*3+0] = x[i][0];
-      dcoord[(itag-1)*3+1] = x[i][1];
-      dcoord[(itag-1)*3+2] = x[i][2];
-      dtype[itag-1] = type[i];
+      dcoord[(itag - 1) * 3 + 0] = x[i][0];
+      dcoord[(itag - 1) * 3 + 1] = x[i][1];
+      dcoord[(itag - 1) * 3 + 2] = x[i][2];
+      dtype[itag - 1] = type[i];
     }
-    #pragma omp for
-    for (ii = 0; ii < inum; ii++){
+#pragma omp for
+    for (ii = 0; ii < inum; ii++)
+    {
       i = ilist[ii];
       itag = tag[i];
-      tag2i[itag-1] = ii;
+      tag2i[itag - 1] = ii;
     }
-    
-    #pragma omp master
+
+#pragma omp master
     for (ii = 0; ii < inum; ii++)
     {
       i = ilist[ii];
@@ -206,7 +257,7 @@ void PairTorchMolNet::compute(int eflag, int vflag)
       jlist = firstneigh[i];
       jnum = numneigh[i];
       itag = tag[i];
-      for(jj = 0; jj < jnum; jj++)
+      for (jj = 0; jj < jnum; jj++)
       {
         j = jlist[jj];
         j &= NEIGHMASK;
@@ -217,56 +268,53 @@ void PairTorchMolNet::compute(int eflag, int vflag)
         zj = x[j][2];
         rij = pow(xtmp - xj, 2) + pow(ytmp - yj, 2) + pow(ztmp - zj, 2);
 
-          idx_i[neigh_flag] = itag - 1;
-          idx_j[neigh_flag] = jtag - 1;
-          cell_shift_tmp = cell_inv.matmul(torch::tensor({xj - dcoord[(jtag-1)*3+0], yj - dcoord[(jtag-1)*3+1], zj - dcoord[(jtag-1)*3+2]}, torch::kDouble));
-          for (int dd = 0; dd < 3; ++dd)
-          {
-            cell_shifts[neigh_flag * 3 + dd] = std::round(cell_shift_tmp[dd].item<double>());
-          }
-            // std::cout << "itag=" << itag << " jtag=" << jtag << std::endl;
-            // std::cout << "coord:" << dcoord[(jtag-1)*3+0] << " " << dcoord[(jtag-1)*3+1] << " " << dcoord[(jtag-1)*3+2] << std::endl;
-            // std::cout << "xj=" << xj << " yj=" << yj << " zj=" << zj << std::endl;
-            // std::cout << "cell_shift_tmp=" << cell_shift_tmp << std::endl;
-            // std::cout << "cell_shifts=" << cell_shifts[neigh_flag * 3 + 0] << " " << cell_shifts[neigh_flag * 3 + 1] << " " << cell_shifts[neigh_flag * 3 + 2] << std::endl;
+        idx_i[neigh_flag] = itag - 1;
+        idx_j[neigh_flag] = jtag - 1;
+        cell_shift_tmp = cell_inv.matmul(torch::tensor({xj - dcoord[(jtag - 1) * 3 + 0], yj - dcoord[(jtag - 1) * 3 + 1], zj - dcoord[(jtag - 1) * 3 + 2]}, torch::kDouble));
+        for (int dd = 0; dd < 3; ++dd)
+        {
+          cell_shifts[neigh_flag * 3 + dd] = std::round(cell_shift_tmp[dd].item<double>());
+        }
+        // std::cout << "itag=" << itag << " jtag=" << jtag << std::endl;
+        // std::cout << "coord:" << dcoord[(jtag-1)*3+0] << " " << dcoord[(jtag-1)*3+1] << " " << dcoord[(jtag-1)*3+2] << std::endl;
+        // std::cout << "xj=" << xj << " yj=" << yj << " zj=" << zj << std::endl;
+        // std::cout << "cell_shift_tmp=" << cell_shift_tmp << std::endl;
+        // std::cout << "cell_shifts=" << cell_shifts[neigh_flag * 3 + 0] << " " << cell_shifts[neigh_flag * 3 + 1] << " " << cell_shifts[neigh_flag * 3 + 2] << std::endl;
         neigh_flag++;
       }
     }
 
-
-
     // full calculation
     torchmolnet_.predict(
-      denergy, 
-      dforces, 
-      dstress,
-      deatoms,
-      dcoord, 
-      dbox,
-      dtype, 
-      idx_i,
-      idx_j,
-      cell_shifts
-    );
+        denergy,
+        dforces,
+        dstress,
+        deatoms,
+        dcoord,
+        dbox,
+        dtype,
+        idx_i,
+        idx_j,
+        cell_shifts);
 
-    // get force
-    #pragma omp for
+// get force
+#pragma omp for
     for (itag = 0; itag < inum; itag++)
     {
       i = tag2i[itag];
-      f[i][0] = dforces[itag*3+0];
-      f[i][1] = dforces[itag*3+1];
-      f[i][2] = dforces[itag*3+2];
+      f[i][0] = dforces[itag * 3 + 0];
+      f[i][1] = dforces[itag * 3 + 1];
+      f[i][2] = dforces[itag * 3 + 2];
       // std::cout<<"atom i=" << i << " force set to" << f[i][0] << " " << f[i][1] << " " << f[i][2] << std::endl;
     }
-    // get force for ghost atoms
-    #pragma omp for
+// get force for ghost atoms
+#pragma omp for
     for (i = inum; i < inum + nghost; i++)
     {
       itag = tag[i];
-      f[i][0] = dforces[(itag-1)*3+0];
-      f[i][1] = dforces[(itag-1)*3+1];
-      f[i][2] = dforces[(itag-1)*3+2];
+      f[i][0] = dforces[(itag - 1) * 3 + 0];
+      f[i][1] = dforces[(itag - 1) * 3 + 1];
+      f[i][2] = dforces[(itag - 1) * 3 + 2];
       // std::cout<<"ghost atom i=" << i << " force set to" << f[i][0] << " " << f[i][1] << " " << f[i][2] << std::endl;
     }
     // return to lammps
@@ -274,7 +322,7 @@ void PairTorchMolNet::compute(int eflag, int vflag)
       eng_vdwl += denergy;
     if (eflag_atom)
     {
-      #pragma omp for
+#pragma omp for
       for (itag = 0; itag < inum; itag++)
       {
         i = tag2i[itag];
